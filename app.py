@@ -1,40 +1,43 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
-# 1. Page Configuration
-st.set_page_config(page_title="Arrow Sales Ops Portal", layout="wide", page_icon="🏹")
+st.set_page_config(page_title="Arrow Sales Ops Hub", layout="wide", page_icon="🏹")
 
-# 2. Sidebar with Logo and Links
-logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Arrow_Electronics_logo.svg/1200px-Arrow_Electronics_logo.svg.png"
-st.sidebar.image(logo_url, width=200)
-st.sidebar.title("🚀 Quick Access")
-st.sidebar.markdown("---")
-st.sidebar.link_button("🔗 Open Salesforce", "https://arrow.my.salesforce.com")
-st.sidebar.link_button("🔗 Open MyConnect", "https://myconnect.arrow.com")
-st.sidebar.link_button("🔗 Open Oracle EBS", "https://ebs.arrow.com")
+# Sidebar
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Arrow_Electronics_logo.svg/1200px-Arrow_Electronics_logo.svg.png", width=200)
+st.sidebar.title("🚀 Quick Links")
+st.sidebar.link_button("🔗 Salesforce", "https://arrow.my.salesforce.com")
+st.sidebar.link_button("🔗 Unity", "https://unity.arrow.com")
+st.sidebar.link_button("🔗 MyConnect", "https://myconnect.arrow.com")
 
-# 3. App Header
 st.title("🛡️ Sales Ops Knowledge Hub")
-st.subheader("Internal SOPs & Process Navigation")
+st.markdown("---")
 
-# 4. Data Loading
-try:
-    df = pd.read_csv("sop_data.csv", sep=None, engine='python')
-    df.columns = df.columns.str.strip()
-    df = df.replace(np.nan, '', regex=True)
+# Data Load
+df = pd.read_csv("sop_data.csv")
 
-    # 5. NEW: Improved Clear Search Logic
-    if 'search_query' not in st.session_state:
-        st.session_state.search_query = ""
+# Search Functionality
+if 'search' not in st.session_state: st.session_state.search = ""
+def set_search(term): st.session_state.search = term
 
-    # This function resets the search box
-    def clear_text():
-        st.session_state.search_query = ""
-        st.session_state.main_search = "" # This clears the actual widget
+st.write("### 💡 Quick Search Topics")
+c1, c2, c3, c4 = st.columns(4)
+if c1.button("📑 Order Status"): set_search("Unity")
+if c2.button("🌍 Venlo / Logistics"): set_search("Venlo")
+if c3.button("💰 Refunds"): set_search("Refund")
+if c4.button("🔄 Reset"): set_search("")
 
-    def set_search(term):
-        st.session_state.search_query = term
+query = st.text_input("🔍 Search for a process or system...", value=st.session_state.search)
+
+if query:
+    results = df[df.apply(lambda row: query.lower() in row.astype(str).str.lower().values, axis=1)]
+    for _, row in results.iterrows():
+        with st.expander(f"📂 {row['System']} - {row['Process']}"):
+            st.info(row['Instructions'])
+            if "http" in str(row['Screenshot_URL']):
+                st.image(row['Screenshot_URL'])
+else:
+    st.write("Please select a topic or search above to see procedures.")        st.session_state.search_query = term
         st.session_state.main_search = term # This fills the actual widget
 
     # 6. Popular Topics Buttons
