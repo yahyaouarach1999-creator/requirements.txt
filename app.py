@@ -2,68 +2,67 @@ import streamlit as st
 import pandas as pd
 import re
 import urllib.parse
-import base64
 
-# --- 1. SETTINGS & THEME ---
+# --- 1. SETTINGS ---
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- 2. THE PERMANENT LOGO STRING (Base64) ---
-# This is the Arrow Logo converted to text so it never breaks
-LOGO_IMAGE = "https://www.arrow.com/arrow-logo.png" 
+# --- 2. THE PERMANENT LOGO FIX (BASE64) ---
+# This is a tiny version of the Arrow logo embedded as raw data
+LOGO_SVG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0Y5NzMxNiIgZD0iTTEyIDJMMiA3bDEwIDUgMTAtNXYxMEgxMlYyMmw4LTUgNC01Vjd6Ii8+PC9zdmc+"
 
-st.markdown("""
+st.markdown(f"""
     <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-        .stApp { background-color: #F8FAFC; }
+        #MainMenu {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        header {{visibility: hidden;}}
+        .stApp {{ background-color: #F8FAFC; }}
         
-        .header-container {
+        .header-container {{
             display: flex;
             align-items: center;
             background-color: #1E293B;
-            padding: 20px 30px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            border-bottom: 6px solid #F97316;
-        }
-        .logo-img {
-            height: 50px;
-            margin-right: 25px;
-        }
-        .title-text {
+            padding: 15px 25px;
+            border-radius: 10px;
+            border-bottom: 5px solid #F97316;
+            margin-bottom: 20px;
+        }}
+        .logo-box {{
+            background: white;
+            padding: 8px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .title-text {{
             color: white;
-            font-size: 45px;
+            font-size: 40px;
             font-weight: 900;
-            font-family: 'Segoe UI', sans-serif;
+            margin-left: 20px;
             letter-spacing: 2px;
-            margin: 0;
-        }
+        }}
     </style>
-""", unsafe_allow_html=True)
-
-# Render the Header using the direct link and fallback logic
-st.markdown(f"""
+    
     <div class="header-container">
-        <img src="{LOGO_IMAGE}" class="logo-img">
-        <h1 class="title-text">ARLEDGE</h1>
+        <div class="logo-box">
+            <img src="{LOGO_SVG}" width="50">
+        </div>
+        <div class="title-text">ARLEDGE</div>
     </div>
 """, unsafe_allow_html=True)
-
-st.divider()
 
 # --- 3. SECURITY GATE ---
 if 'authorized' not in st.session_state: st.session_state.authorized = False
 
 if not st.session_state.authorized:
-    st.info("💻 Arledge Terminal: Restricted Access")
-    pwd = st.text_input("Enter Terminal Key", type="password")
-    if st.button("Access Granted") or (pwd == "Arrow2026"):
+    st.info("🔒 Secure Terminal")
+    pwd = st.text_input("Enter Key", type="password")
+    if st.button("Unlock") or (pwd == "Arrow2026"):
         if pwd == "Arrow2026":
             st.session_state.authorized = True
             st.rerun()
         elif pwd != "":
-            st.error("Invalid Key")
+            st.error("Invalid")
     st.stop()
 
 # --- 4. DATA ENGINE ---
@@ -78,44 +77,39 @@ def load_data():
 
 df = load_data()
 
-# --- 5. STATE & NAVIGATION ---
+# --- 5. SEARCH & VIEW LOGIC ---
 if 'view' not in st.session_state: st.session_state.view = 'home'
 if 'query' not in st.session_state: st.session_state.query = ""
 
-# --- 6. HOME PAGE ---
 if st.session_state.view == 'home':
-    # Actionable Stats
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Indexed SOPs", len(df))
-    c2.metric("Active Systems", len(df['System'].unique()))
-    c3.metric("Email Templates", len(df[df['Email_Template'] != ""]))
-
-    query = st.text_input("🔍 Search Database...", value=st.session_state.query, placeholder="Search by System, ID, or Keywords...").strip()
+    # Actionable UI
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Indexed SOPs", len(df))
+    col2.metric("Platforms", len(df['System'].unique()))
+    
+    query = st.text_input("🔍 Search Database...", value=st.session_state.query).strip()
     st.session_state.query = query
 
     if query:
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         results = df[mask]
-        
         for idx, row in results.iterrows():
-            with st.container():
-                st.markdown(f"""
-                <div style="background:white; padding:15px; border-radius:10px; border-left:5px solid #F97316; margin-bottom:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                    <small style="color:#F97316; font-weight:bold;">{row['System']}</small>
-                    <h4 style="margin:0;">{row['Process']}</h4>
-                </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"View {row['Process']}", key=f"v_{idx}"):
-                    st.session_state.selected = row
-                    st.session_state.view = 'detail'
-                    st.rerun()
+            st.markdown(f"""
+            <div style="background:white; padding:12px; border-left:5px solid #F97316; margin-bottom:10px; border-radius:5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
+                <small style="color:#F97316; font-weight:bold;">{row['System']}</small>
+                <h4 style="margin:0;">{row['Process']}</h4>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"Open {row['Process']}", key=f"v_{idx}"):
+                st.session_state.selected = row
+                st.session_state.view = 'detail'
+                st.rerun()
     else:
-        st.info("💡 Start by typing a system name or process keyword above.")
+        st.write("### Ready. Type to search.")
 
-# --- 7. DETAIL PAGE ---
 elif st.session_state.view == 'detail':
     row = st.session_state.selected
-    if st.button("← Back to Results"):
+    if st.button("← Back"):
         st.session_state.view = 'home'
         st.rerun()
     
@@ -124,22 +118,18 @@ elif st.session_state.view == 'detail':
     
     with l:
         st.title(row['Process'])
-        st.write(f"**Platform:** `{row['System']}` | **Updated:** {row['Last_Updated']}")
-        
-        st.markdown("### 📋 Instructions")
+        st.write(f"**Platform:** `{row['System']}`")
+        st.markdown("### 📋 Steps")
         for step in row['Instructions'].split('<br>'):
             st.markdown(f"✅ {step}")
             
         if row['Email_Template']:
             st.divider()
-            st.subheader("📧 Smart Email Template")
-            
-            # Auto-replace [NUMBER] with any digits found in the user's search
+            st.subheader("📧 Smart Template")
             num_match = re.search(r'\d+', st.session_state.query)
             id_val = num_match.group(0) if num_match else "[ID]"
             full_tpl = row['Email_Template'].replace("[NUMBER]", id_val)
             
-            # UI Split for Subject/Body
             parts = full_tpl.split('\n', 1)
             subject = parts[0].replace("Subject: ", "") if parts else "Update"
             body = parts[1] if len(parts) > 1 else full_tpl
@@ -148,9 +138,8 @@ elif st.session_state.view == 'detail':
             st.code(body, language="text")
             
             mailto = f"mailto:?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
-            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:15px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">🚀 Launch Outlook</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:12px;text-decoration:none;border-radius:5px;font-weight:bold;">🚀 Launch Outlook</a>', unsafe_allow_html=True)
 
     with r:
         if row['Screenshot_URL']:
-            st.markdown("### 🖼️ Visual Reference")
-            st.image(row['Screenshot_URL'], use_container_width=True)
+            st.image(row['Screenshot_URL'])
