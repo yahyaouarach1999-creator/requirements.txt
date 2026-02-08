@@ -6,6 +6,11 @@ import urllib.parse
 # --- 1. CONFIG & BRANDING ---
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
+# Add a professional sidebar logo
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=150)
+st.sidebar.title("Arledge Navigation")
+st.sidebar.markdown("---")
+
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF; color: #1E293B; }
