@@ -2,124 +2,133 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. EXECUTIVE SETTINGS
-st.set_page_config(page_title="Arrow Ops Intelligence", layout="wide", page_icon="🏹")
+# 1. ARCHITECTURAL CONFIG
+st.set_page_config(page_title="Arrow Ops Academy", layout="wide", page_icon="🎓")
 
-# 2. HIGH-END BRANDING CSS
+# 2. COURSERA-STYLE PREMIUM STYLING
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap');
     
-    .stApp { background-color: #FFFFFF; font-family: 'Inter', sans-serif; }
+    .stApp { background-color: #FFFFFF; font-family: 'Source Sans Pro', sans-serif; }
     
-    /* Logo Box - Fixing the "Out of Image" look */
-    .logo-container {
-        padding: 20px;
-        text-align: center;
-        background: #f8f9fa;
-        border-radius: 15px;
+    /* Sidebar: Learning Dashboard Style */
+    section[data-testid="stSidebar"] { 
+        background-color: #1F2937 !important; 
+        color: white !important;
+    }
+
+    /* Course Card Design */
+    .course-card {
+        background: #FFFFFF;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #E5E7EB;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         margin-bottom: 20px;
-    }
-    
-    /* Premium SOP Cards */
-    .sop-card {
-        background: white;
-        padding: 35px;
-        border-radius: 16px;
-        border: 1px solid #edf2f7;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        margin-bottom: 25px;
+        border-top: 5px solid #2563EB; /* Coursera Blue */
     }
 
-    /* Actionable Instructions Styling */
-    .step-box {
-        background-color: #f8fafc;
-        border-left: 4px solid #1e293b;
-        padding: 20px;
-        color: #334155;
-        border-radius: 0 8px 8px 0;
-    }
-
-    /* Sidebar Glass UI */
-    section[data-testid="stSidebar"] { background-color: #f1f5f9 !important; }
-    
-    /* Bold Buttons */
-    .stButton>button {
-        background-color: #000000;
-        color: white;
-        border-radius: 8px;
+    /* Situation Badge */
+    .situation-badge {
+        background-color: #EFF6FF;
+        color: #1E40AF;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
         font-weight: 700;
-        height: 50px;
         text-transform: uppercase;
-        letter-spacing: 1px;
+    }
+
+    /* Fancy Buttons */
+    .stButton>button {
+        background-color: #2563EB;
+        color: white;
+        border-radius: 6px;
+        font-weight: 600;
+        height: 50px;
+        border: none;
+        width: 100%;
+    }
+    .stButton>button:hover {
+        background-color: #1D4ED8 !important;
+        box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. SIDEBAR WITH LOGO FIX
+# 3. SIDEBAR: THE LEARNING PATH
 with st.sidebar:
-    st.markdown('<div class="logo-container">', unsafe_allow_html=True)
-    try:
-        st.image("logo.png", use_container_width=True)
-    except:
-        st.markdown("<h2 style='color:#000;'>ARROW</h2>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown("### **Operational Health**")
-    st.progress(92, text="Unity Processing Speed")
-    st.progress(100, text="Salesforce API Sync")
+    st.markdown("<h2 style='color:white;'>🏹 Ops Academy</h2>", unsafe_allow_html=True)
+    st.image("logo.png", use_container_width=True)
     st.markdown("---")
-    st.link_button("CRM Terminal", "https://arrow.my.salesforce.com")
-    st.link_button("ERP Unity", "https://unity.arrow.com")
+    st.write("📂 **YOUR LEARNING PATH**")
+    st.caption("✔️ Introduction to Unity")
+    st.caption("✔️ Advanced Salesforce Case Mgmt")
+    st.caption("🟡 Venlo Logistics Expert")
+    st.progress(65)
+    st.markdown("---")
+    st.link_button("🌐 Open System Terminal", "https://unity.arrow.com")
 
-# 4. DASHBOARD HEADER
-st.markdown("<p style='color:#94a3b8; font-weight:700; letter-spacing:3px;'>INTERNAL OPERATIONS HUB</p>", unsafe_allow_html=True)
-st.title("Ops Intelligence & Strategy")
-st.markdown("---")
+# 4. MAIN HUB HEADER
+st.title("Welcome back, Ops Professional 👋")
+st.markdown("#### Explore scenarios and master the global supply chain workflows.")
 
-# 5. DATA LOADING
+# 5. DATA ENGINE
 @st.cache_data
-def load_sop_vault():
+def load_data():
     try:
         return pd.read_csv("sop_data.csv").replace(np.nan, '', regex=True)
     except:
         return None
 
-df = load_sop_vault()
+df = load_data()
 
-# 6. COMMAND MODULES
-if 'search' not in st.session_state: st.session_state.search = ""
-
+# 6. SCENARIO SELECTOR (Fancy Situations)
+st.write("### 🎯 Choose a Situation to Resolve")
 c1, c2, c3, c4 = st.columns(4)
-with c1: 
-    if st.button("📦 Order Life-Cycle"): st.session_state.search = "Unity"
-with c2: 
-    if st.button("🚚 Logistics & Venlo"): st.session_state.search = "Venlo"
-with c3: 
-    if st.button("💰 Revenue Ops"): st.session_state.search = "Refund"
-with c4: 
-    if st.button("🔄 Clear System"): st.session_state.search = ""
 
-# 7. SEARCH & RESULTS
-query = st.text_input("", value=st.session_state.search, placeholder="Enter workflow keyword (e.g. 'RMA', 'Tracking', 'Proforma')...")
+with c1:
+    st.image("https://cdn-icons-png.flaticon.com/512/3502/3502601.png", width=60)
+    if st.button("Order is Delayed"): st.session_state.search = "Unity"
+with c2:
+    st.image("https://cdn-icons-png.flaticon.com/512/2312/2312701.png", width=60)
+    if st.button("Shipment Tracking"): st.session_state.search = "Venlo"
+with c3:
+    st.image("https://cdn-icons-png.flaticon.com/512/2489/2489756.png", width=60)
+    if st.button("Payment Issues"): st.session_state.search = "Refund"
+with c4:
+    st.image("https://cdn-icons-png.flaticon.com/512/1160/1160515.png", width=60)
+    if st.button("Reset Dashboard"): st.session_state.search = ""
 
+st.markdown("---")
+
+# 7. SEARCH BAR
+query = st.text_input("🔍 Search specific tools or keywords...", value=st.session_state.search)
+
+# 8. SITUATION DISPLAY (Coursera Style)
 if query and df is not None:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
     if not results.empty:
         for _, row in results.iterrows():
-            with st.container():
-                st.markdown(f"""
-                <div class="sop-card">
-                    <span style="color:#64748b; font-size:12px; font-weight:700;">SYSTEM: {row['System'].upper()}</span>
-                    <h2 style="margin-top:5px; margin-bottom:20px;">{row['Process']}</h2>
-                    <div class="step-box">{row['Instructions']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                if str(row['Screenshot_URL']).startswith("http"):
-                    st.image(row['Screenshot_URL'], use_container_width=True)
+            st.markdown(f"""
+            <div class="course-card">
+                <span class="situation-badge">{row['System'].upper()} MODULE</span>
+                <h2 style="color:#111827; margin-top:10px;">Scenario: {row['Process']}</h2>
+                <hr>
+                <h4 style="color:#374151;">Step-by-Step Execution:</h4>
+                <p style="font-size:16px; line-height:1.6; color:#4B5563;">{row['Instructions']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Show the visual aid
+            if str(row['Screenshot_URL']).startswith("http"):
+                st.image(row['Screenshot_URL'], use_container_width=True, caption=f"Training Visual for {row['Process']}")
     else:
-        st.error("No matching enterprise process found.")
+        st.error("No training modules found for this query.")
 else:
-    st.info("Select a workflow module above to begin process visualization.")
+    st.markdown("""
+        <div style='background-color:#F9FAFB; padding:50px; border-radius:15px; text-align:center; border:2px dashed #D1D5DB;'>
+            <h3 style='color:#6B728
