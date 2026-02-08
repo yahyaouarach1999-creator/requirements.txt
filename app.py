@@ -5,13 +5,11 @@ import numpy as np
 # 1. Page Configuration
 st.set_page_config(page_title="Arrow Ops Intelligence", layout="wide", page_icon="🏹")
 
-# 2. Styling: Modern, Bright, and Open
+# 2. Styling (Clean, Bright, Minimalist)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; color: #2D3436; }
     section[data-testid="stSidebar"] { background-color: #F8F9FA !important; border-right: 1px solid #F1F3F5; }
-
-    /* Floating Studio Cards */
     .sop-card {
         background-color: #FFFFFF;
         padding: 30px;
@@ -20,8 +18,6 @@ st.markdown("""
         border: 1px solid #F1F3F5;
         margin-bottom: 25px;
     }
-    
-    /* Modern Pill Buttons */
     .stButton>button {
         width: 100%;
         background-color: #000000;
@@ -32,8 +28,6 @@ st.markdown("""
         height: 50px;
     }
     .stButton>button:hover { background-color: #333333 !important; color: white !important; }
-    
-    /* Search Bar */
     .stTextInput input {
         background-color: #F8F9FA !important;
         border: 1px solid #E9ECEF !important;
@@ -62,46 +56,27 @@ st.title("Operations Intelligence Hub")
 st.markdown("---")
 
 # 5. Safe Data Load
-try:
-    df = pd.read_csv("sop_data.csv")
-    df = df.replace(np.nan, '', regex=True)
-except Exception as e:
+@st.cache_data # PRO TIP: This makes your app much faster!
+def load_data():
+    try:
+        data = pd.read_csv("sop_data.csv")
+        return data.replace(np.nan, '', regex=True)
+    except:
+        return None
+
+df = load_data()
+
+if df is None:
     st.error("Missing 'sop_data.csv' file in repository.")
     st.stop()
 
-# 6. Interaction Logic
+# 6. Session State for Search
 if 'search' not in st.session_state:
     st.session_state.search = ""
 
-# 7. Workspace Modules
+# 7. Workspace Modules (Using a callback for smoother transitions)
 st.write("### Workspace Selection")
 c1, c2, c3, c4 = st.columns(4)
+
 if c1.button("📦 Order Management"): st.session_state.search = "Unity"
 if c2.button("🚚 Logistics"): st.session_state.search = "Venlo"
-if c3.button("💳 Financials"): st.session_state.search = "Refund"
-if c4.button("🔄 Reset View"): st.session_state.search = ""
-
-# 8. Search Input
-query = st.text_input("Query Database", value=st.session_state.search, placeholder="Search by system or process name...")
-
-# 9. Results Output
-if query:
-    mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
-    results = df[mask]
-    
-    if not results.empty:
-        for _, row in results.iterrows():
-            st.markdown(f"""
-            <div class="sop-card">
-                <span style="background: #F8F9FA; padding: 6px 15px; border-radius: 30px; font-size: 11px; font-weight: bold; color: #888;">{row['System'].upper()}</span>
-                <h2 style="margin-top: 15px; color: #000;">{row['Process']}</h2>
-                <div style="color: #555; line-height: 1.8;">{row['Instructions']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if str(row['Screenshot_URL']).startswith("http"):
-                st.image(row['Screenshot_URL'], use_container_width=True)
-    else:
-        st.warning("No records found.")
-else:
-    st.markdown("<br><p style='text-align: center; color: #CCC;'>Select a workspace above or type to search.</p>", unsafe_allow_html=True)
