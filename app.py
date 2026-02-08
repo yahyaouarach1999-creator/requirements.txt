@@ -2,116 +2,128 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. CORE CONFIGURATION
-st.set_page_config(page_title="Arrow Ops Masterclass", layout="wide", page_icon="🏹")
+# 1. PAGE CONFIG
+st.set_page_config(page_title="Arrow Ops Terminal", layout="wide", page_icon="🏹")
 
-# 2. ELITE DARK THEME (Fixed Syntax & High-Contrast Blue)
+# 2. PROFESSIONAL SLATE THEME (High Readability)
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Inter:wght@400;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
     .stApp {
-        background-color: #0B0E14; 
-        color: #D1D5DB;
+        background-color: #F1F5F9; /* Light Slate Gray Background */
+        color: #1E293B;
         font-family: 'Inter', sans-serif;
     }
 
-    /* Card Styling */
-    .sop-card {
-        background: #161B22;
-        border: 1px solid #30363D;
-        border-radius: 8px;
-        padding: 30px;
-        margin-bottom: 20px;
-    }
-    
-    /* Search Bar Professionalism */
-    .stTextInput input {
-        background-color: #0B0E14 !important;
-        border: 1px solid #58A6FF !important;
-        color: #58A6FF !important;
-        font-family: 'Roboto Mono', monospace;
+    /* Side Bar */
+    section[data-testid="stSidebar"] {
+        background-color: #1E293B !important;
     }
 
-    /* Terminal-style Link Buttons */
+    /* Compact Data Cards */
+    .sop-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 4px;
+        padding: 15px 25px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* Professional Headers */
+    .system-tag {
+        color: #64748B;
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .process-title {
+        color: #0F172A;
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-top: 2px;
+    }
+
+    /* Instruction Text */
+    .instruction-text {
+        color: #334155;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-top: 10px;
+    }
+
+    /* Compact Link Buttons */
     .app-link {
         display: inline-block;
-        padding: 10px 20px;
-        margin-right: 10px;
-        border: 1px solid #30363D;
-        border-radius: 5px;
-        color: #8B949E;
+        padding: 6px 12px;
+        margin-right: 5px;
+        background: #F8FAFC;
+        border: 1px solid #CBD5E1;
+        border-radius: 3px;
+        color: #475569;
         text-decoration: none;
-        font-size: 12px;
-        font-weight: bold;
-        transition: 0.3s;
+        font-size: 11px;
+        font-weight: 600;
     }
     .app-link:hover {
-        border-color: #58A6FF;
-        color: #58A6FF;
-        background: rgba(88, 166, 255, 0.1);
+        background: #E2E8F0;
+        color: #0284C7;
     }
 
-    .strat-header {
-        color: #58A6FF;
-        text-transform: uppercase;
-        font-size: 0.8em;
-        letter-spacing: 2px;
-        margin-bottom: 5px;
+    /* Search Bar Adjustment */
+    .stTextInput input {
+        border-radius: 4px !important;
+        border: 1px solid #CBD5E1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. DIRECT ACCESS LINKS
+# 3. GLOBAL NAVIGATION HEADER
 st.markdown("""
-<div style="padding: 10px 0px 30px 0px;">
-    <a class="app-link" href="https://arrow.my.salesforce.com" target="_blank">🔗 SALESFORCE CRM</a>
-    <a class="app-link" href="#" target="_blank">🔗 UNITY ERP</a>
-    <a class="app-link" href="#" target="_blank">🔗 ORACLE FINANCIALS</a>
-    <a class="app-link" href="#" target="_blank">🔗 VENLO LOGISTICS</a>
-    <a class="app-link" href="#" target="_blank">🔗 GTS COMPLIANCE</a>
+<div style="background: white; padding: 10px 20px; border-bottom: 2px solid #E2E8F0; margin-bottom: 20px;">
+    <a class="app-link" href="https://arrow.my.salesforce.com" target="_blank">SFDC</a>
+    <a class="app-link" href="#">UNITY</a>
+    <a class="app-link" href="#">ORACLE</a>
+    <a class="app-link" href="#">VENLO</a>
+    <a class="app-link" href="#">GTS</a>
 </div>
 """, unsafe_allow_html=True)
 
-# 4. DATA ENGINE
+# 4. DATA LOADER
 @st.cache_data
-def load_arrow_data():
+def load_data():
     try:
-        df = pd.read_csv("sop_data.csv")
-        return df.fillna("")
-    except Exception as e:
-        st.error(f"Error loading CSV: {e}")
-        return pd.DataFrame()
+        return pd.read_csv("sop_data.csv").fillna("")
+    except:
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL"])
 
-df = load_arrow_data()
+df = load_data()
 
-# 5. SEARCH INTERFACE
-st.markdown("<h1 style='letter-spacing:-1px; color:white;'>Order Management & CS Academy</h1>", unsafe_allow_html=True)
-search_query = st.text_input("SEARCH GLOBAL PROTOCOLS", placeholder="Enter keyword (e.g., 'Credit Hold', 'RMA', 'ECCN')")
+# 5. SEARCH TERMINAL
+st.title("🏹 Arrow Operational Repository")
+query = st.text_input("Search processes, system codes, or compliance triggers...", placeholder="Try 'Credit Hold' or 'RMA'...")
 
-# 6. RESULTS LOGIC
+# 6. COMPACT RENDERING
 if not df.empty:
-    if search_query:
-        results = df[df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)]
-    else:
-        results = df
+    results = df[df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)] if query else df
 
-    if not results.empty:
-        for _, row in results.iterrows():
-            with st.container():
-                st.markdown(f"""
-                <div class="sop-card">
-                    <div class="strat-header">{row['System']} // ARROW GLOBAL OPS</div>
-                    <h2 style="color:white; margin-top:5px; margin-bottom:15px;">{row['Process']}</h2>
-                    <div style="background:#0D1117; padding:20px; border-radius:5px; border-left:3px solid #58A6FF; margin-bottom:20px;">
-                        <p style="color:#CBD5E1; font-size:1.05em; line-height:1.7;">{row['Instructions']}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                if row['Screenshot_URL']:
-                    st.image(row['Screenshot_URL'], use_container_width=True)
-    else:
-        st.info("NO MATCHING PROTOCOLS FOUND.")
+    for _, row in results.iterrows():
+        col1, col2 = st.columns([0.8, 0.2]) # Data is 80%, Image is 20%
+        
+        with col1:
+            st.markdown(f"""
+            <div class="sop-card">
+                <div class="system-tag">{row['System']}</div>
+                <div class="process-title">{row['Process']}</div>
+                <div class="instruction-text">{row['Instructions']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col2:
+            if row['Screenshot_URL']:
+                st.image(row['Screenshot_URL'], caption="Ref Image", width=150) # Small thumbnail
 else:
-    st.warning("DATA REPOSITORY EMPTY. CHECK CSV UPLOAD.")
+    st.warning("No data found in sop_data.csv")
