@@ -5,102 +5,91 @@ import re
 # 1. SETUP
 st.set_page_config(page_title="Arrow Ops Search", layout="wide")
 
-# 2. DATA ENGINE
+# 2. THEME - Ensuring a clean White/Google look
+st.markdown("""
+<style>
+    .stApp { background-color: #FFFFFF; }
+    .search-box { text-align: center; padding-top: 50px; }
+    /* Hide the standard Streamlit footer and header for a cleaner look */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+# 3. DATA
 @st.cache_data
-def get_data():
+def load_data():
     try:
         return pd.read_csv("sop_data.csv").fillna("")
     except:
         return pd.DataFrame()
 
-df = get_data()
+df = load_data()
 
-# Initialize Session State for Navigation and History
-if 'view_mode' not in st.session_state:
-    st.session_state.view_mode = 'home'
-if 'selected_proc' not in st.session_state:
-    st.session_state.selected_proc = None
+# 4. INITIALIZE SESSION STATE
+if 'view' not in st.session_state:
+    st.session_state.view = 'home'
+if 'selected_row' not in st.session_state:
+    st.session_state.selected_row = None
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- SIDEBAR: RECENT ACTIVITY ---
+# 5. SIDEBAR (History)
 with st.sidebar:
-    st.title("🏹 Recent Activity")
-    if not st.session_state.history:
-        st.write("No recent searches.")
-    else:
-        for item in reversed(st.session_state.history[-5:]): # Show last 5
-            if st.button(f"🕒 {item['type']}: {item['id']}", key=f"hist_{item['id']}"):
-                # Logic to trigger a search for this historical item
-                st.session_state.view_mode = 'home'
-                # We use a dummy trigger to force the app to recognize the historical click
-                st.query_params["q"] = item['id']
+    st.header("🕒 Recent")
+    for item in st.session_state.history[-5:]:
+        if st.button(f"{item}", use_container_width=True):
+             st.session_state.view = 'home'
+             # This forces the app to re-run with this query
 
-# --- SEARCH LOGIC ---
-def search_logic(query):
-    webso_match = re.search(r"WEBSO\s*(\d+)", query, re.IGNORECASE)
-    case_match = re.search(r"\b\d{8}\b", query) 
+# 6. PAGE LOGIC: HOME (Search Only)
+if st.session_state.view == 'home':
+    st.markdown("<div class='search-box'><h1>🏹 Arrow Search</h1></div>", unsafe_allow_html=True)
     
-    if webso_match:
-        ref_id = webso_match.group(1)
-        if not any(d['id'] == f"WEBSO {ref_id}" for d in st.session_state.history):
-            st.session_state.history.append({"type": "Order", "id": f"WEBSO {ref_id}"})
-        return df[df['Process'].str.contains("Order", case=False)], "WEBSO", ref_id
-    
-    if case_match:
-        ref_id = case_match.group(0)
-        if not any(d['id'] == f"CASE {ref_id}" for d in st.session_state.history):
-            st.session_state.history.append({"type": "Case", "id": f"CASE {ref_id}"})
-        return df[df['Process'].str.contains("Escalation", case=False)], "SFDC", ref_id
-    
-    return df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)], None, None
-
-# --- PAGE 1: HOME ---
-if st.session_state.view_mode == 'home':
-    st.markdown("<br><br><div style='text-align: center;'>", unsafe_allow_html=True)
-    st.title("Arrow Ops Terminal")
-    
-    # Check if we are coming from a history click
-    default_query = st.query_params.get("q", "")
-    query = st.text_input("", value=default_query, placeholder="Enter WEBSO, Case #, or Keyword...")
-    st.markdown("</div>", unsafe_allow_html=True)
+    query = st.text_input("", placeholder="Enter WEBSO, Case #, or Keyword...", key="main_search")
 
     if query:
-        results, link_type, ref_id = search_logic(query)
-        
-        if link_type == "WEBSO":
-            st.success(f"📍 WEBSO {ref_id} Identified")
-            st.link_button(f"🚀 Open Order {ref_id} in Unity", f"https://unity.arrow.com/orders/{ref_id}")
-        
-        elif link_type == "SFDC":
-            st.success(f"📍 Case {ref_id} Identified")
-            st.link_button(f"🚀 Open Case {ref_id} in Salesforce", f"https://arrow.my.salesforce.com/{ref_id}")
+        # Detect WEBSO/Case for History
+        if "WEBSO" in query.upper() or len(query) == 8:
+            if query not in st.session_state.history:
+                st.session_state.history.append(query)
 
-        st.divider()
-
+        # Logic: Filter results
+        results = df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
+        
         if not results.empty:
+            st.write(f"Showing {len(results)} results:")
             for idx, row in results.iterrows():
-                if st.button(f"📄 SOP: {row['Process']} ({row['System']})", key=f"res_{idx}"):
-                    st.session_state.selected_proc = row
-                    st.session_state.view_mode = 'detail'
+                # Clicking this takes you to "Another Page"
+                if st.button(f"📄 {row['Process']} | {row['System']}", key=f"btn_{idx}"):
+                    st.session_state.selected_row = row
+                    st.session_state.view = 'detail'
                     st.rerun()
         else:
-            st.error("No SOP found.")
+            st.error("No matches found.")
 
-# --- PAGE 2: DETAIL ---
-elif st.session_state.view_mode == 'detail':
-    proc = st.session_state.selected_proc
-    if st.button("← Back to Results"):
-        st.session_state.view_mode = 'home'
+# 7. PAGE LOGIC: DETAIL (The "Another Page")
+elif st.session_state.view == 'detail':
+    row = st.session_state.selected_row
+    
+    if st.button("← Back to Search"):
+        st.session_state.view = 'home'
         st.rerun()
     
     st.divider()
+    
     col1, col2 = st.columns([0.7, 0.3])
     with col1:
-        st.caption(f"SYSTEM: {proc['System']}")
-        st.header(proc['Process'])
-        # Displaying steps correctly
-        st.write(proc['Instructions'].replace("<br>", "\n"))
+        st.caption(row['System'])
+        st.title(row['Process'])
+        # Display steps as clean text
+        st.markdown(row['Instructions'].replace("<br>", "\n"))
+        
+        # WEBSO Deep Link logic
+        webso_match = re.search(r"WEBSO\s*(\d+)", str(st.session_state.history[-1] if st.session_state.history else ""), re.IGNORECASE)
+        if webso_match:
+            st.link_button(f"Open Order {webso_match.group(1)} in Unity", f"https://unity.arrow.com/order/{webso_match.group(1)}")
+
     with col2:
-        if proc['Screenshot_URL']:
-            st.image(proc['Screenshot_URL'], caption="Reference Image")
+        if row['Screenshot_URL']:
+            st.image(row['Screenshot_URL'], caption="System Reference")
