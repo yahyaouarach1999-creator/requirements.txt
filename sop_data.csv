@@ -15,48 +15,65 @@ def get_data():
 
 df = get_data()
 
-# Initialize Session State
+# Initialize Session State for Navigation and History
 if 'view_mode' not in st.session_state:
     st.session_state.view_mode = 'home'
 if 'selected_proc' not in st.session_state:
     st.session_state.selected_proc = None
+if 'history' not in st.session_state:
+    st.session_state.history = []
 
-# --- SEARCH LOGIC WITH DEEP LINK DETECTION ---
+# --- SIDEBAR: RECENT ACTIVITY ---
+with st.sidebar:
+    st.title("🏹 Recent Activity")
+    if not st.session_state.history:
+        st.write("No recent searches.")
+    else:
+        for item in reversed(st.session_state.history[-5:]): # Show last 5
+            if st.button(f"🕒 {item['type']}: {item['id']}", key=f"hist_{item['id']}"):
+                # Logic to trigger a search for this historical item
+                st.session_state.view_mode = 'home'
+                # We use a dummy trigger to force the app to recognize the historical click
+                st.query_params["q"] = item['id']
+
+# --- SEARCH LOGIC ---
 def search_logic(query):
-    # Detect WEBSO (e.g., WEBSO12345)
     webso_match = re.search(r"WEBSO\s*(\d+)", query, re.IGNORECASE)
-    # Detect SFDC Case (e.g., 00123456)
     case_match = re.search(r"\b\d{8}\b", query) 
     
     if webso_match:
-        order_num = webso_match.group(1)
-        # Filters specifically for Order Recovery SOP
-        return df[df['Process'].str.contains("Order", case=False)], "WEBSO", order_num
+        ref_id = webso_match.group(1)
+        if not any(d['id'] == f"WEBSO {ref_id}" for d in st.session_state.history):
+            st.session_state.history.append({"type": "Order", "id": f"WEBSO {ref_id}"})
+        return df[df['Process'].str.contains("Order", case=False)], "WEBSO", ref_id
     
     if case_match:
-        case_num = case_match.group(0)
-        # Filters specifically for Case Escalation SOP
-        return df[df['Process'].str.contains("Escalation", case=False)], "SFDC", case_num
+        ref_id = case_match.group(0)
+        if not any(d['id'] == f"CASE {ref_id}" for d in st.session_state.history):
+            st.session_state.history.append({"type": "Case", "id": f"CASE {ref_id}"})
+        return df[df['Process'].str.contains("Escalation", case=False)], "SFDC", ref_id
     
     return df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)], None, None
 
 # --- PAGE 1: HOME ---
 if st.session_state.view_mode == 'home':
-    st.markdown("<br><br><br><div style='text-align: center;'>", unsafe_allow_html=True)
-    st.title("🏹 Arrow Ops Terminal")
-    query = st.text_input("", placeholder="Enter WEBSO, Case #, or Keyword...")
+    st.markdown("<br><br><div style='text-align: center;'>", unsafe_allow_html=True)
+    st.title("Arrow Ops Terminal")
+    
+    # Check if we are coming from a history click
+    default_query = st.query_params.get("q", "")
+    query = st.text_input("", value=default_query, placeholder="Enter WEBSO, Case #, or Keyword...")
     st.markdown("</div>", unsafe_allow_html=True)
 
     if query:
         results, link_type, ref_id = search_logic(query)
         
-        # Action Buttons for Detected References
         if link_type == "WEBSO":
-            st.success(f"📍 Order {ref_id} Recognized")
-            st.link_button(f"🚀 Open WEBSO {ref_id} in Unity", f"https://unity.arrow.com/orders/{ref_id}")
+            st.success(f"📍 WEBSO {ref_id} Identified")
+            st.link_button(f"🚀 Open Order {ref_id} in Unity", f"https://unity.arrow.com/orders/{ref_id}")
         
         elif link_type == "SFDC":
-            st.success(f"📍 SFDC Case {ref_id} Recognized")
+            st.success(f"📍 Case {ref_id} Identified")
             st.link_button(f"🚀 Open Case {ref_id} in Salesforce", f"https://arrow.my.salesforce.com/{ref_id}")
 
         st.divider()
@@ -68,7 +85,7 @@ if st.session_state.view_mode == 'home':
                     st.session_state.view_mode = 'detail'
                     st.rerun()
         else:
-            st.error("No SOP matches found.")
+            st.error("No SOP found.")
 
 # --- PAGE 2: DETAIL ---
 elif st.session_state.view_mode == 'detail':
@@ -82,7 +99,8 @@ elif st.session_state.view_mode == 'detail':
     with col1:
         st.caption(f"SYSTEM: {proc['System']}")
         st.header(proc['Process'])
+        # Displaying steps correctly
         st.write(proc['Instructions'].replace("<br>", "\n"))
     with col2:
         if proc['Screenshot_URL']:
-            st.image(proc['Screenshot_URL'], caption="System Preview")
+            st.image(proc['Screenshot_URL'], caption="Reference Image")
