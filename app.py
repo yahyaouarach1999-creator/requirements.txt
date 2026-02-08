@@ -8,10 +8,21 @@ st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- 2. CLEAN BRANDING SECTION ---
 col1, col2 = st.columns([0.15, 0.85])
+
 with col1:
-    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=140)
+    # Using the official Arrow Logo from a reliable CDN
+    logo_url = "https://www.arrow.com/arrow-logo.png" 
+    # Fallback to a secondary official link if needed
+    backup_logo = "https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg"
+    
+    try:
+        st.image(logo_url, width=140)
+    except:
+        st.image(backup_logo, width=140)
+
 with col2:
-    st.markdown("<h1 style='margin-top: 10px; font-size: 45px;'>ARLEDGE</h1>", unsafe_allow_html=True)
+    # Large, clean Arledge text
+    st.markdown("<h1 style='margin-top: 10px; font-size: 45px; color: #1E293B;'>ARLEDGE</h1>", unsafe_allow_html=True)
 
 st.divider()
 
