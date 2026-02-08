@@ -14,18 +14,17 @@ st.sidebar.link_button("🔗 Salesforce", "https://arrow.my.salesforce.com")
 st.sidebar.link_button("🔗 Unity", "https://unity.arrow.com")
 st.sidebar.link_button("🔗 MyConnect", "https://myconnect.arrow.com")
 
-# 3. Header
+# 3. Header Section
 st.title("🛡️ Sales Ops Knowledge Hub")
 st.subheader("Digital Business & Customer Support SOPs")
 st.markdown("---")
 
 # 4. Data Loading Logic
 try:
-    # Loading the SOP database
     df = pd.read_csv("sop_data.csv")
     df = df.replace(np.nan, '', regex=True)
 
-    # 5. Search Logic (Managing the Search State)
+    # 5. Search State Management
     if 'search' not in st.session_state:
         st.session_state.search = ""
 
@@ -35,6 +34,48 @@ try:
     # 6. Popular Topics Buttons
     st.write("### 💡 Quick Search Topics")
     c1, c2, c3, c4 = st.columns(4)
+    
+    if c1.button("📑 Order Status (Unity)"):
+        set_search("Unity")
+        
+    if c2.button("🌍 Venlo / Logistics"):
+        set_search("Venlo")
+        
+    if c3.button("💰 Refunds"):
+        set_search("Refund")
+        
+    if c4.button("🔄 Clear Search"):
+        set_search("")
+
+    # 7. Search Input Box
+    query = st.text_input("🔍 Search for a process or system...", value=st.session_state.search)
+
+    # 8. Results Display Section
+    st.markdown("---")
+    
+    if query:
+        # Search all columns for the keyword
+        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+        results = df[mask]
+        
+        if not results.empty:
+            for _, row in results.iterrows():
+                with st.expander(f"📂 {row['System']} - {row['Process']}"):
+                    st.write("### 📝 Instructions")
+                    st.info(row['Instructions'])
+                    
+                    img_path = str(row['Screenshot_URL'])
+                    if img_path.startswith("http"):
+                        st.image(img_path, use_container_width=True)
+        else:
+            st.warning(f"No results found for '{query}'.")
+            
+    else:
+        st.write("### 🏠 Welcome")
+        st.info("Select a 'Quick Search Topic' above or type a keyword (like 'Salesforce' or 'Wire') to see the SOP.")
+
+except Exception as e:
+    st.error(f"⚠️ System Error: {e}")    c1, c2, c3, c4 = st.columns(4)
     
     if c1.button("📑 Order Status (Unity)"):
         set_search("Unity")
