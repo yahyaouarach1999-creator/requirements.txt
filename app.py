@@ -14,14 +14,15 @@ st.markdown("""
         header {visibility: hidden;}
         .stApp { background-color: #F8FAFC; }
         
+        /* Branding Header */
         .header-container {
             display: flex;
             align-items: center;
-            background-color: #1E293B; /* Deep Slate */
+            background-color: #1E293B;
             padding: 25px;
             border-radius: 12px;
             margin-bottom: 30px;
-            border-bottom: 5px solid #F97316; /* Safety Orange */
+            border-bottom: 5px solid #F97316;
         }
         .title-text {
             color: white;
@@ -29,31 +30,37 @@ st.markdown("""
             font-weight: 800;
             margin-left: 25px;
             font-family: 'Segoe UI', sans-serif;
-            letter-spacing: 1px;
         }
+        /* SOP Cards */
         .sop-card {
             background-color: white;
             padding: 20px;
             border-radius: 10px;
             border-left: 6px solid #F97316;
-            margin-bottom: 15px;
+            margin-bottom: 5px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        /* Template Box */
+        .template-box {
+            background-color: #F1F5F9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed #64748B;
+            font-family: monospace;
         }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 2. THE BRANDING HEADER ---
-col1, col2 = st.columns([0.15, 0.85])
+col_logo, col_title = st.columns([0.15, 0.85])
 
-with col1:
-    # This checks if you uploaded the logo to GitHub
+with col_logo:
     if os.path.exists("logo.png"):
         st.image("logo.png", width=160)
     else:
-        # Fallback if file is missing
-        st.warning("Upload logo.png to GitHub")
+        st.warning("Upload logo.png")
 
-with col2:
+with col_title:
     st.markdown("<div class='title-text'>ARLEDGE</div>", unsafe_allow_html=True)
 
 st.divider()
@@ -62,8 +69,8 @@ st.divider()
 if 'authorized' not in st.session_state: st.session_state.authorized = False
 
 if not st.session_state.authorized:
-    st.info("💻 Arledge System: Development Environment")
-    pwd = st.text_input("Enter Terminal Key", type="password")
+    st.info("💻 Arledge System: Secure Development Mode")
+    pwd = st.text_input("Terminal Key", type="password")
     if st.button("Access Granted") or (pwd == "Arrow2026"):
         if pwd == "Arrow2026":
             st.session_state.authorized = True
@@ -72,11 +79,11 @@ if not st.session_state.authorized:
             st.error("Invalid Key")
     st.stop()
 
-# --- 4. DATA ENGINE (UTF-8 FOR SYMBOLS) ---
+# --- 4. DATA ENGINE ---
 @st.cache_data(ttl=1)
 def load_data():
     try:
-        # utf-8-sig ensures symbols like é, à, and $ work
+        # utf-8-sig handles symbols like é, à, and $
         df = pd.read_csv("sop_data.csv", encoding='utf-8-sig').fillna("")
         df.columns = df.columns.str.strip()
         return df
@@ -85,11 +92,18 @@ def load_data():
 
 df = load_data()
 
-# --- 5. SEARCH & NAVIGATION ---
+# --- 5. STATE & NAVIGATION ---
 if 'view' not in st.session_state: st.session_state.view = 'home'
 if 'query' not in st.session_state: st.session_state.query = ""
 
+# --- 6. HOME PAGE ---
 if st.session_state.view == 'home':
+    # Quick Stats
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Active SOPs", len(df))
+    s2.metric("Systems", len(df['System'].unique()))
+    s3.metric("Smart Templates", len(df[df['Email_Template'] != ""]))
+
     query = st.text_input("🔍 Search Terminal...", value=st.session_state.query, placeholder="e.g. Unity, RMA, $ Recovery").strip()
     st.session_state.query = query
 
@@ -98,20 +112,19 @@ if st.session_state.view == 'home':
         results = df[mask]
         
         for idx, row in results.iterrows():
-            st.markdown(f"""
-            <div class="sop-card">
-                <p style="color:#F97316; font-size:12px; font-weight:bold; margin-bottom:5px;">{row['System']}</p>
+            st.markdown(f"""<div class="sop-card">
+                <p style="color:#F97316; font-size:12px; font-weight:bold; margin-bottom:2px;">{row['System']}</p>
                 <h3 style="margin-top:0;">{row['Process']}</h3>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"🔍 Open {row['Process']}", key=f"v_{idx}"):
+            </div>""", unsafe_allow_html=True)
+            if st.button(f"Open Details: {row['Process']}", key=f"v_{idx}"):
                 st.session_state.selected = row
                 st.session_state.view = 'detail'
                 st.rerun()
     else:
-        st.write("### Welcome, Developer")
-        st.caption(f"Indexing {len(df)} Active Processes")
+        st.write("### Ready for Input")
+        st.caption("Awaiting process search or new CSV data...")
 
+# --- 7. DETAIL PAGE ---
 elif st.session_state.view == 'detail':
     row = st.session_state.selected
     if st.button("← Back to Results"):
@@ -123,21 +136,33 @@ elif st.session_state.view == 'detail':
     
     with l:
         st.title(row['Process'])
-        st.write(f"**Platform:** `{row['System']}`")
+        st.write(f"**Platform:** `{row['System']}` | **Updated:** {row['Last_Updated']}")
         
         st.markdown("### 📋 Instructions")
         for step in row['Instructions'].split('<br>'):
-            st.markdown(f"🔸 {step}")
+            st.markdown(f"✅ {step}")
             
         if row['Email_Template']:
-            st.subheader("📧 Smart Template")
-            st.text_area("Live Template:", value=row['Email_Template'], height=200)
+            st.divider()
+            st.subheader("📧 Smart Email Template")
             
-            # Smart Outlook Link
-            sub = row['Email_Template'].split('\n')[0].replace("Subject: ", "")
-            mailto = f"mailto:?subject={urllib.parse.quote(sub)}"
-            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:15px;text-decoration:none;border-radius:8px;font-weight:bold;">🚀 Launch Outlook</a>', unsafe_allow_html=True)
+            # Extract ID from search query if possible
+            num_match = re.search(r'\d+', st.session_state.query)
+            id_val = num_match.group(0) if num_match else "[NUMBER]"
+            full_tpl = row['Email_Template'].replace("[NUMBER]", id_val)
+            
+            # UI Formatting
+            parts = full_tpl.split('\n', 1)
+            subject = parts[0].replace("Subject: ", "") if parts else "Update"
+            body = parts[1] if len(parts) > 1 else full_tpl
+            
+            st.info(f"**Subject:** {subject}")
+            st.code(body, language="text")
+            
+            mailto = f"mailto:?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:15px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">🚀 Launch Outlook</a>', unsafe_allow_html=True)
 
     with r:
         if row['Screenshot_URL']:
-            st.image(row['Screenshot_URL'], caption="Reference Screenshot")
+            st.markdown("### 🖼️ Reference")
+            st.image(row['Screenshot_URL'], use_container_width=True)
