@@ -6,29 +6,111 @@ import urllib.parse
 # --- 1. SETUP ---
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- 2. THE CLEAN BRANDING FIX ---
-# Custom CSS to hide the Streamlit "hamburger" menu and footer for a cleaner look
+import streamlit as st
+import pandas as pd
+import re
+import urllib.parse
+
+# --- 1. SETUP ---
+st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
+
+# --- 2. THE PERMANENT LOGO FIX (Base64) ---
+# This is a tiny version of the Arrow logo embedded as data
+arrow_logo_base64 = "https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg"
+
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .stActionButton {display: none;}
+        .logo-text-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-top: -30px;
+        }
+        .arledge-title {
+            font-size: 50px;
+            font-weight: 800;
+            color: #1E293B;
+            font-family: 'Helvetica', sans-serif;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([0.15, 0.85])
-
-with col1:
-    # Stable PNG URL for Arrow Logo
-    logo_url = "https://logos-world.net/wp-content/uploads/2023/05/Arrow-Electronics-Logo.png"
-    st.image(logo_url, width=150)
-
-with col2:
-    # Professional ARLEDGE Heading
-    st.markdown("<h1 style='margin-top: -10px; font-size: 50px; color: #1E293B;'>ARLEDGE</h1>", unsafe_allow_html=True)
+# Layout using HTML for perfect alignment
+st.markdown(f"""
+    <div class="logo-text-container">
+        <img src="{arrow_logo_base64}" width="150">
+        <div class="arledge-title">ARLEDGE</div>
+    </div>
+""", unsafe_allow_html=True)
 
 st.divider()
+
+# --- 3. SECURITY GATE ---
+if 'authorized' not in st.session_state: st.session_state.authorized = False
+
+if not st.session_state.authorized:
+    st.markdown("<div style='text-align:center; padding-top:50px;'>", unsafe_allow_html=True)
+    st.write("### 🔒 Secure Internal Access")
+    pwd = st.text_input("Enter Access Key", type="password")
+    if st.button("Unlock Terminal") or (pwd == "Arrow2026"):
+        if pwd == "Arrow2026":
+            st.session_state.authorized = True
+            st.rerun()
+        elif pwd != "":
+            st.error("Invalid Key")
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()
+
+# --- 4. DATA LOAD ---
+@st.cache_data(ttl=1)
+def load_data():
+    try:
+        df = pd.read_csv("sop_data.csv", encoding='utf-8-sig')
+        df.columns = df.columns.str.strip()
+        return df.fillna("")
+    except:
+        return pd.DataFrame()
+
+df = load_data()
+
+# --- 5. SEARCH & RESULTS ---
+if 'view' not in st.session_state: st.session_state.view = 'home'
+if 'search_query' not in st.session_state: st.session_state.search_query = ""
+
+if st.session_state.view == 'home':
+    query = st.text_input("", value=st.session_state.search_query, placeholder="Search Systems or SOPs...", label_visibility="collapsed").strip()
+    st.session_state.search_query = query
+
+    if query:
+        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+        results = df[mask]
+        for idx, row in results.iterrows():
+            with st.container():
+                c_a, c_b = st.columns([0.8, 0.2])
+                c_a.markdown(f"### {row['Process']}")
+                c_a.write(f"System: `{row['System']}`")
+                if c_b.button("View", key=f"btn_{idx}"):
+                    st.session_state.selected = row
+                    st.session_state.view = 'detail'
+                    st.rerun()
+                st.write("---")
+    else:
+        st.info("💡 Type a keyword above (e.g., Unity, Venlo, Oracle) to search.")
+
+elif st.session_state.view == 'detail':
+    row = st.session_state.selected
+    if st.button("← Back"):
+        st.session_state.view = 'home'
+        st.rerun()
+    
+    st.title(row['Process'])
+    st.write(f"**System:** {row['System']}")
+    st.markdown("### Steps")
+    for step in row['Instructions'].split('<br>'):
+        st.markdown(f"🔹 {step}")
 
 # --- 3. SECURITY GATE ---
 if 'authorized' not in st.session_state: st.session_state.authorized = False
