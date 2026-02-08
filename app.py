@@ -23,7 +23,7 @@ st.markdown("---")
 try:
     df = pd.read_csv("sop_data.csv")
     df = df.replace(np.nan, '', regex=True)
-
+    
     # 5. Search State Management
     if 'search' not in st.session_state:
         st.session_state.search = ""
@@ -33,19 +33,24 @@ try:
 
     # 6. Popular Topics Buttons
     st.write("### 💡 Quick Search Topics")
+    
     c1, c2, c3, c4 = st.columns(4)
     
-    if c1.button("📑 Order Status (Unity)"):
-        set_search("Unity")
-        
-    if c2.button("🌍 Venlo / Logistics"):
-        set_search("Venlo")
-        
-    if c3.button("💰 Refunds"):
-        set_search("Refund")
-        
-    if c4.button("🔄 Clear Search"):
-        set_search("")
+    with c1:
+        if st.button("📑 Order Status (Unity)"):
+            set_search("Unity")
+    
+    with c2:
+        if st.button("🌍 Venlo / Logistics"):
+            set_search("Venlo")
+            
+    with c3:
+        if st.button("💰 Refunds"):
+            set_search("Refund")
+            
+    with c4:
+        if st.button("🔄 Clear Search"):
+            set_search("")
 
     # 7. Search Input Box
     query = st.text_input("🔍 Search for a process or system...", value=st.session_state.search)
@@ -72,68 +77,7 @@ try:
             
     else:
         st.write("### 🏠 Welcome")
-        st.info("Select a 'Quick Search Topic' above or type a keyword (like 'Salesforce' or 'Wire') to see the SOP.")
+        st.info("Select a 'Quick Search Topic' above or type a keyword to see the SOP.")
 
 except Exception as e:
-    st.error(f"⚠️ System Error: {e}")    c1, c2, c3, c4 = st.columns(4)
-    
-    if c1.button("📑 Order Status (Unity)"):
-        set_search("Unity")
-        
-    if c2.button("🌍 Venlo / Logistics"):
-        set_search("Venlo")
-        
-    if c3.button("💰 Refunds"):
-        set_search("Refund")
-        
-    if c4.button("🔄 Clear Search"):
-        set_search("")
-
-    # 7. The Search Input Box
-    query = st.text_input("🔍 Search for a process or system...", value=st.session_state.search)
-
-    # 8. Results Display Section
-    if query:
-        # Search all columns for the keyword
-        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
-        results = df[mask]
-        
-        if not results.empty:
-            for _, row in results.iterrows():
-                with st.expander(f"📂 {row['System']} - {row['Process']}"):
-                    st.write("### 📝 Instructions")
-                    st.info(row['Instructions'])
-                    
-                    img_path = str(row['Screenshot_URL'])
-                    if img_path.startswith("http"):
-                        st.image(img_path, use_container_width=True)
-        else:
-            st.warning(f"No results found for '{query}'.")
-            
-    else:
-        st        else:
-            st.warning(f"No results found for '{query}'.")
-    else:
-        st.write("Please select a topic or search above to see procedures.")
-
-except Exception as e:
-    st.error(f"⚠️ System Error: {e}")    if query:
-        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
-        filtered = df[mask]
-        
-        if not filtered.empty:
-            for _, row in filtered.iterrows():
-                with st.expander(f"📂 {row.get('System', 'System')} - {row.get('Process', 'Process')}"):
-                    st.write("### 📝 Instructions")
-                    st.info(row.get('Instructions', 'No instructions found'))
-                    
-                    img_url = row.get('Screenshot_URL', '')
-                    if str(img_url).startswith('http'):
-                        st.image(img_url, use_container_width=True)
-        else:
-            st.warning(f"No results found for '{query}'.")
-    else:
-        st.info("Select a popular topic above or type in the search bar to begin.")
-
-except Exception as e:
-    st.error(f"⚠️ Error: {e}")
+    st.error(f"⚠️ System Error: {e}")
