@@ -21,42 +21,59 @@ if 'view_mode' not in st.session_state:
 if 'selected_proc' not in st.session_state:
     st.session_state.selected_proc = None
 
-# --- SEARCH LOGIC WITH WEBSO DETECTION ---
+# --- SEARCH LOGIC WITH DEEP LINK DETECTION ---
 def search_logic(query):
-    # Detect WEBSO pattern (e.g., WEBSO followed by numbers)
-    if re.search(r"WEBSO\s*\d+", query, re.IGNORECASE):
-        # Auto-filter for Unity Order Recovery because that's where WEBSOs live
-        return df[df['Process'].str.contains("Order", case=False)]
+    # Detect WEBSO (e.g., WEBSO12345)
+    webso_match = re.search(r"WEBSO\s*(\d+)", query, re.IGNORECASE)
+    # Detect SFDC Case (e.g., 00123456)
+    case_match = re.search(r"\b\d{8}\b", query) 
     
-    # Standard keyword search
-    return df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
+    if webso_match:
+        order_num = webso_match.group(1)
+        # Filters specifically for Order Recovery SOP
+        return df[df['Process'].str.contains("Order", case=False)], "WEBSO", order_num
+    
+    if case_match:
+        case_num = case_match.group(0)
+        # Filters specifically for Case Escalation SOP
+        return df[df['Process'].str.contains("Escalation", case=False)], "SFDC", case_num
+    
+    return df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)], None, None
 
-# --- PAGE 1: GOOGLE-STYLE HOME ---
+# --- PAGE 1: HOME ---
 if st.session_state.view_mode == 'home':
     st.markdown("<br><br><br><div style='text-align: center;'>", unsafe_allow_html=True)
     st.title("🏹 Arrow Ops Terminal")
-    query = st.text_input("", placeholder="Search keywords or Enter Order # (e.g. WEBSO 999)...")
+    query = st.text_input("", placeholder="Enter WEBSO, Case #, or Keyword...")
     st.markdown("</div>", unsafe_allow_html=True)
 
     if query:
-        results = search_logic(query)
+        results, link_type, ref_id = search_logic(query)
         
-        if re.search(r"WEBSO\s*\d+", query, re.IGNORECASE):
-            st.success(f"📍 Order Reference Detected: Searching Order Management Protocols...")
+        # Action Buttons for Detected References
+        if link_type == "WEBSO":
+            st.success(f"📍 Order {ref_id} Recognized")
+            st.link_button(f"🚀 Open WEBSO {ref_id} in Unity", f"https://unity.arrow.com/orders/{ref_id}")
+        
+        elif link_type == "SFDC":
+            st.success(f"📍 SFDC Case {ref_id} Recognized")
+            st.link_button(f"🚀 Open Case {ref_id} in Salesforce", f"https://arrow.my.salesforce.com/{ref_id}")
+
+        st.divider()
 
         if not results.empty:
             for idx, row in results.iterrows():
-                if st.button(f"📄 {row['Process']} ({row['System']})", key=f"res_{idx}"):
+                if st.button(f"📄 SOP: {row['Process']} ({row['System']})", key=f"res_{idx}"):
                     st.session_state.selected_proc = row
                     st.session_state.view_mode = 'detail'
                     st.rerun()
         else:
-            st.error("No protocol found for that reference.")
+            st.error("No SOP matches found.")
 
-# --- PAGE 2: PROCESS DETAIL ---
+# --- PAGE 2: DETAIL ---
 elif st.session_state.view_mode == 'detail':
     proc = st.session_state.selected_proc
-    if st.button("← Back to Search"):
+    if st.button("← Back to Results"):
         st.session_state.view_mode = 'home'
         st.rerun()
     
