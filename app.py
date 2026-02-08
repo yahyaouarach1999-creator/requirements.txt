@@ -3,139 +3,100 @@ import pandas as pd
 import re
 import urllib.parse
 
-# --- 1. CONFIG & STYLING ---
-st.set_page_config(page_title="Arrow Ops Masterclass", layout="wide", page_icon="🏹")
+# --- 1. CONFIG & INTERFACE THEME ---
+st.set_page_config(page_title="Arledge Knowledge Terminal", layout="wide", page_icon="🏹")
 
 st.markdown("""
 <style>
-    .stApp { background-color: #F8FAFC; color: #1E293B; font-family: 'Inter', sans-serif; }
-    .main-header { text-align: center; padding: 40px 0; background: white; border-bottom: 1px solid #E2E8F0; margin-bottom: 30px; }
-    .sop-card { border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; background: white; margin-bottom: 15px; border-left: 5px solid #3B82F6; transition: 0.2s; }
+    .stApp { background-color: #FFFFFF; color: #1E293B; }
+    .arledge-banner { 
+        text-align: center; padding: 40px; 
+        background: linear-gradient(90deg, #1E293B 0%, #334155 100%); 
+        color: white; border-radius: 15px; margin-bottom: 25px;
+    }
+    .stat-box {
+        background: #F8FAFC; padding: 15px; border-radius: 10px;
+        text-align: center; border-bottom: 4px solid #F97316;
+    }
+    .sop-card { 
+        border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; 
+        background: white; margin-bottom: 12px; border-left: 6px solid #F97316;
+        transition: 0.2s;
+    }
     .sop-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .system-badge { background: #F1F5F9; color: #475569; padding: 4px 12px; border-radius: 15px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .instruction-step { padding: 10px 0; border-bottom: 1px solid #F1F5F9; font-size: 15px; }
-    .template-box { background: #F8FAFC; border: 1px dashed #CBD5E1; padding: 15px; border-radius: 8px; font-family: monospace; }
+    .verified-badge { color: #10B981; font-weight: bold; font-size: 14px; }
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. ACCESS CONTROL (THE GATE) ---
-ACCESS_KEY = "Arrow2026"
+# --- 2. THE SECURITY GATE ---
+if 'authorized' not in st.session_state: st.session_state.authorized = False
 
-if 'access_granted' not in st.session_state:
-    st.session_state.access_granted = False
-
-if not st.session_state.access_granted:
+if not st.session_state.authorized:
     st.markdown("<div style='text-align:center; padding-top:100px;'>", unsafe_allow_html=True)
-    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=200)
-    st.title("Operations Terminal Login")
+    st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=250)
+    st.title("Arledge Knowledge Terminal")
+    st.write("Secure Internal Access Only")
     
-    # login logic
-    user_pwd = st.text_input("Internal Access Key", type="password")
-    if st.button("Unlock System"):
-        if user_pwd == ACCESS_KEY:
-            st.session_state.access_granted = True
+    pwd = st.text_input("Enter Access Key", type="password")
+    if st.button("Unlock Terminal") or (pwd == "Arrow2026"):
+        if pwd == "Arrow2026":
+            st.session_state.authorized = True
             st.rerun()
-        else:
-            st.error("Invalid Key. Access Denied.")
+        elif pwd != "":
+            st.error("Invalid Key")
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- 3. DATA ENGINE ---
+# --- 3. DATA ARCHITECTURE ---
 @st.cache_data(ttl=1)
-def load_master_data():
+def load_arledge_data():
     try:
+        # Load CSV and ensure headers are clean
         df = pd.read_csv("sop_data.csv", encoding='utf-8-sig')
         df.columns = df.columns.str.strip()
         return df.fillna("")
-    except Exception as e:
-        st.error(f"Critical Error: Could not read CSV. Check headers. {e}")
-        return pd.DataFrame()
+    except:
+        # Fallback if file is missing
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL", "Email_Template", "Last_Updated"])
 
-df = load_master_data()
+df = load_arledge_data()
 
-# --- 4. NAVIGATION & STATE ---
+# --- 4. NAVIGATION STATE ---
 if 'view' not in st.session_state: st.session_state.view = 'home'
-if 'selected_row' not in st.session_state: st.session_state.selected_row = None
-if 'last_id' not in st.session_state: st.session_state.last_id = ""
+if 'search_id' not in st.session_state: st.session_state.search_id = ""
 
-# --- 5. PAGE: SEARCH HOME ---
+# --- 5. SEARCH HOME PAGE ---
 if st.session_state.view == 'home':
-    st.markdown("<div class='main-header'><h1>Arrow Ops Search</h1></div>", unsafe_allow_html=True)
+    st.markdown("<div class='arledge-banner'><h1>🏹 Arledge Knowledge Summary</h1><p>Arrow Electronics Operations Repository</p></div>", unsafe_allow_html=True)
     
-    query = st.text_input("", placeholder="Search keywords (RMA, Hold) or enter WEBSO/Case #...", label_visibility="collapsed").strip()
+    # Dashboard Stats
+    s1, s2, s3 = st.columns(3)
+    s1.markdown(f"<div class='stat-box'><h3>{len(df)}</h3><p>Total SOPs</p></div>", unsafe_allow_html=True)
+    s2.markdown(f"<div class='stat-box'><h3>{len(df['System'].unique())}</h3><p>Systems Indexed</p></div>", unsafe_allow_html=True)
+    s3.markdown(f"<div class='stat-box'><h3>{len(df[df['Email_Template'] != ''])}</h3><p>Email Templates</p></div>", unsafe_allow_html=True)
+    
+    st.write("---")
+    query = st.text_input("", placeholder="Search by system, keyword, or WEBSO/Case #...", label_visibility="collapsed").strip()
 
     if query:
-        # Smart ID Extraction (extract numbers for email templates)
-        id_match = re.search(r"(\d+)", query)
-        if id_match: st.session_state.last_id = id_match.group(1)
+        # Extract ID for dynamic emails
+        nums = re.findall(r'\d+', query)
+        if nums: st.session_state.search_id = nums[0]
 
-        # Global Search
+        # Fuzzy search logic
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         results = df[mask]
-
+        
         if not results.empty:
-            st.write(f"Showing {len(results)} matches:")
             for idx, row in results.iterrows():
-                st.markdown(f"<div class='sop-card'>", unsafe_allow_html=True)
-                if st.button(f"📄 {row['Process']}", key=f"btn_{idx}"):
-                    st.session_state.selected_row = row
+                st.markdown("<div class='sop-card'>", unsafe_allow_html=True)
+                col_a, col_b = st.columns([0.8, 0.2])
+                col_a.markdown(f"### {row['Process']}")
+                col_a.markdown(f"**System:** `{row['System']}` | Updated: `{row['Last_Updated']}`")
+                if col_b.button("View SOP", key=f"btn_{idx}"):
+                    st.session_state.selected = row
                     st.session_state.view = 'detail'
                     st.rerun()
-                st.markdown(f"<span class='system-badge'>{row['System']}</span>", unsafe_allow_html=True)
                 st.markdown("</div>", unsafe_allow_html=True)
         else:
-            st.warning("No matches found. Try searching by system (e.g., 'Unity') or action (e.g., 'Tax').")
-    else:
-        # STARTING STATE (Prevents empty screen)
-        st.info("👋 Hello! Use the search bar above to find instructions and email templates.")
-        st.subheader("Frequent Processes")
-        quick_cols = st.columns(3)
-        for i, (idx, row) in enumerate(df.head(3).iterrows()):
-            if quick_cols[i%3].button(f"📌 {row['Process']}", key=f"quick_{idx}", use_container_width=True):
-                st.session_state.selected_row = row
-                st.session_state.view = 'detail'
-                st.rerun()
-
-# --- 6. PAGE: DETAIL VIEW ---
-elif st.session_state.view == 'detail':
-    row = st.session_state.selected_row
-    if st.button("← Back to Results"):
-        st.session_state.view = 'home'
-        st.rerun()
-    
-    st.divider()
-    col1, col2 = st.columns([0.6, 0.4])
-    
-    with col1:
-        st.markdown(f"<span class='system-badge'>{row['System']}</span>", unsafe_allow_html=True)
-        st.title(row['Process'])
-        
-        st.subheader("Steps to Complete")
-        steps = row['Instructions'].split('<br>')
-        for step in steps:
-            st.markdown(f"<div class='instruction-step'>{step}</div>", unsafe_allow_html=True)
-            
-        # --- EMAIL TEMPLATE LOGIC ---
-        if "Email_Template" in row and row['Email_Template']:
-            st.divider()
-            st.subheader("📧 Email Template")
-            
-            # Fill the template with the ID found during search
-            id_val = st.session_state.last_id if st.session_state.last_id else "[ID NUMBER]"
-            final_email = row['Email_Template'].replace("[NUMBER]", id_val)
-            
-            st.markdown(f"<div class='template-box'>{final_email.replace(chr(10), '<br>')}</div>", unsafe_allow_html=True)
-            
-            # Outlook Button
-            try:
-                subject = final_email.split('\n')[0].replace("Subject: ", "")
-                body = "\n".join(final_email.split('\n')[1:])
-                mail_link = f"mailto:?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
-                st.markdown(f'<br><a href="{mail_link}" style="background:#0078d4;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;font-weight:bold;">🚀 Launch Outlook Email</a>', unsafe_allow_html=True)
-            except:
-                st.caption("Manual copy required for this template.")
-
-    with col2:
-        if row['Screenshot_URL']:
-            st.subheader("Reference")
-            st.image(row['Screenshot_URL'], use_container_width=True)
