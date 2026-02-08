@@ -4,7 +4,7 @@ import re
 import urllib.parse
 
 # --- 1. CONFIG & BRANDING ---
-st.set_page_config(page_title="Arledge Knowledge Terminal", layout="wide", page_icon="🏹")
+st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 st.markdown("""
 <style>
