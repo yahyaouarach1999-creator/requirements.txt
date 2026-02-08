@@ -2,99 +2,112 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. GLOBAL SETTINGS
+# 1. Page Config
 st.set_page_config(page_title="Arrow Ops Intelligence", layout="wide", page_icon="🏹")
 
-# 2. EXECUTIVE CSS (ULTRA-MINIMALIST DARK THEME)
+# 2. "Creative Open" CSS (Bright, Airy, and Professional)
 st.markdown("""
     <style>
-    .stApp { background-color: #000000; color: #FFFFFF; font-family: 'Inter', sans-serif; }
-    section[data-testid="stSidebar"] { background-color: #080808 !important; border-right: 1px solid #1A1A1A; }
+    /* Clean White Background */
+    .stApp {
+        background-color: #FFFFFF;
+        color: #1A1A1A;
+    }
     
-    /* SOP CARD DESIGN */
+    /* Sidebar: Soft Gray */
+    section[data-testid="stSidebar"] {
+        background-color: #F8F9FA !important;
+        border-right: 1px solid #E9ECEF;
+    }
+
+    /* SOP Cards: Floating White Paper Effect */
     .sop-card {
-        background-color: #0A0A0A;
+        background-color: #FFFFFF;
         padding: 30px;
-        border: 1px solid #1A1A1A;
-        border-left: 2px solid #FFFFFF;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border: 1px solid #F1F3F5;
         margin-bottom: 25px;
     }
     
-    /* BUTTONS: INDUSTRIAL STYLE */
+    /* Creative Buttons: Modern Outlines */
     .stButton>button {
         width: 100%;
-        background-color: #FFFFFF;
-        color: #000000;
-        border-radius: 0px;
-        font-weight: 900;
-        letter-spacing: 2px;
+        background-color: #000000;
+        color: #FFFFFF;
+        border-radius: 30px; /* Rounded pill shape */
+        font-weight: 600;
         border: none;
-        height: 50px;
-        transition: all 0.2s ease;
-    }
-    .stButton>button:hover {
-        background-color: #444444 !important;
-        color: #FFFFFF !important;
+        height: 45px;
+        transition: all 0.3s ease;
     }
     
-    /* SEARCH BOX */
+    .stButton>button:hover {
+        background-color: #333333 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Search Bar: Subtle & Rounded */
     .stTextInput input {
-        background-color: #000000 !important;
-        color: white !important;
-        border: 1px solid #1A1A1A !important;
-        border-radius: 0px !important;
-        height: 45px;
+        background-color: #F8F9FA !important;
+        border: 1px solid #E9ECEF !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+    }
+
+    /* Titles */
+    h1 {
+        font-family: 'Helvetica Neue', sans-serif;
+        font-weight: 800;
+        color: #000000;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. SIDEBAR: STATUS & LOGO
+# 3. Sidebar Navigation
 with st.sidebar:
     try:
         st.image("logo.png", use_container_width=True)
     except:
-        st.markdown("<h2 style='text-align:center;'>ARROW</h2>", unsafe_allow_html=True)
-        
-    st.markdown("<br><h5 style='letter-spacing: 2px; color: #444444;'>SYSTEM STATUS</h5>", unsafe_allow_html=True)
-    st.info("● UNITY: ONLINE")
-    st.info("● SFDC: CONNECTED")
+        st.markdown("## ARROW")
+    
     st.markdown("---")
-    st.link_button("📊 SALESFORCE CRM", "https://arrow.my.salesforce.com")
-    st.link_button("⚙️ UNITY SYSTEM", "https://unity.arrow.com")
-    st.caption("SECURE TERMINAL V3.3.0")
+    st.markdown("### 📊 **Live Connectivity**")
+    st.info("Unity: Connected")
+    st.info("Salesforce: Active")
+    st.markdown("---")
+    st.link_button("CRM Access", "https://arrow.my.salesforce.com")
+    st.link_button("ERP Portal", "https://unity.arrow.com")
 
-# 4. HEADER
-st.markdown("<h1 style='font-size: 3rem; font-weight: 800; margin-bottom: 0;'>Ops Intelligence</h1>", unsafe_allow_html=True)
-st.markdown("<p style='color: #444444; letter-spacing: 6px; font-size: 12px; margin-top: 0;'>GLOBAL PROCESS REPOSITORY</p>", unsafe_allow_html=True)
-st.markdown("<br>", unsafe_allow_html=True)
+# 4. Header & Branding
+st.markdown("<p style='letter-spacing: 3px; color: #ADB5BD; font-weight: 600; margin-bottom:0;'>EXCELLENCE HUB</p>", unsafe_allow_html=True)
+st.title("Ops Intelligence Portal")
+st.markdown("---")
 
-# 5. DATA LOADING (SAFE ZONE)
+# 5. Data Retrieval
 try:
     df = pd.read_csv("sop_data.csv")
     df = df.replace(np.nan, '', regex=True)
 except Exception as e:
-    st.error(f"DATABASE OFFLINE: {e}")
+    st.error(f"Database unavailable: {e}")
     st.stop()
 
-# 6. SEARCH STATE
+# 6. Interaction State
 if 'search' not in st.session_state:
     st.session_state.search = ""
 
-# 7. COMMAND MODULES
+# 7. Creative Module Selection
+st.write("### Choose a Workflow")
 c1, c2, c3, c4 = st.columns(4)
-if c1.button("ORDER STATUS"): st.session_state.search = "Unity"
-if c2.button("LOGISTICS"): st.session_state.search = "Venlo"
-if c3.button("FINANCE"): st.session_state.search = "Refund"
-if c4.button("RESET"): st.session_state.search = ""
+with c1:
+    if st.button("📦 Order Management"): st.session_state.search = "Unity"
+with c2:
+    if st.button("🚚 Logistics Flow"): st.session_state.search = "Venlo"
+with c3:
+    if st.button("💳 Financial SOPs"): st.session_state.search = "Refund"
+with c4:
+    if st.button("🔄 Reset View"): st.session_state.search = ""
 
-# 8. SEARCH INTERFACE
-query = st.text_input("", value=st.session_state.search, placeholder="ENTER COMMAND OR KEYWORD...")
-
-# 9. OUTPUT ENGINE
-if query:
-    mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
-    results = df[mask]
-    
-    if not results.empty:
-        for _, row in results.iterrows():
-            st
+# 8. Search Field
+query = st.text_input("", value=st.session_state.search, placeholder="Search by keyword, system, or process name
