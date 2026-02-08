@@ -1,6 +1,6 @@
 System,Process,Instructions,Screenshot_URL
-Sales Ops;Salesforce;Customer Email;Search for Account. Use 'Template A' to reply.
-Orders;SWB;Arrow.com Sync;Check SWB for new web orders. Verify Tax ID.
-Finance;Oracle EBS;Address Change;Go to Customers > Sites. Enter new address. Save.
-IT Support;MyConnect;Report System Bug;If Oracle is down, log a ticket on MyConnect.
+Salesforce,Customer Email,Search for Account. Use 'Template A' to reply.,https://via.placeholder.com/600x400.png?text=Email+SOP
+Salesforce,Refund Approval,Ask the collector for refund approval. Attach email to case once done.,https://via.placeholder.com/600x400.png?text=Refund+SOP
+Oracle EBS,Venlo Update,Verify the VAT number and update the Ship-To address.,https://via.placeholder.com/600x400.png?text=Oracle+SOP
+
 
