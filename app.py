@@ -14,7 +14,55 @@ if 'access_granted' not in st.session_state:
 if not st.session_state.access_granted:
     st.markdown("<br><br><div style='text-align:center'>", unsafe_allow_html=True)
     st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=200)
-    st.title("Secure Ops Portal")
+    st.title("Secure Ops Portal")import streamlit as st
+import pandas as pd
+import urllib.parse
+
+# ... [Previous Login/Data Loading Code remains same] ...
+
+# --- NEW DETAIL PAGE LOGIC ---
+elif st.session_state.view == 'detail':
+    row = st.session_state.selected
+    if st.button("← Back to Search"):
+        st.session_state.view = 'home'
+        st.rerun()
+    
+    st.divider()
+    col1, col2 = st.columns([0.6, 0.4])
+
+    with col1:
+        st.title(row['Process'])
+        st.caption(f"System: {row['System']}")
+        
+        st.subheader("Action Steps")
+        for step in row['Instructions'].split('<br>'):
+            st.write(step)
+
+        # --- NEW EMAIL TEMPLATE SECTION ---
+        if "Email_Template" in row and row['Email_Template']:
+            st.divider()
+            st.subheader("📧 Communication Template")
+            
+            # Display the template in a code box for easy copying
+            st.text_area("Copy/Paste Template:", value=row['Email_Template'], height=150)
+            
+            # Create a "Launch Outlook" button
+            template_text = row['Email_Template']
+            # Basic parsing to separate Subject from Body for the mailto link
+            if "Subject:" in template_text:
+                parts = template_text.split("\n\n", 1)
+                subject = parts[0].replace("Subject: ", "")
+                body = parts[1] if len(parts) > 1 else ""
+            else:
+                subject = "Internal Inquiry"
+                body = template_text
+            
+            mail_link = f"mailto:?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+            st.markdown(f'<a href="{mail_link}" style="background-color:#0078d4; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">🚀 Open New Email in Outlook</a>', unsafe_allow_html=True)
+
+    with col2:
+        if row['Screenshot_URL']:
+            st.image(row['Screenshot_URL'], caption="System Visual Reference")
     user_key = st.text_input("Enter Access Key", type="password")
     if st.button("Unlock"):
         if user_key == ACCESS_KEY:
