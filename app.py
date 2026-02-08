@@ -6,23 +6,27 @@ import urllib.parse
 # --- 1. SETUP ---
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- 2. CLEAN BRANDING SECTION ---
+# --- 2. THE CLEAN BRANDING FIX ---
+# Custom CSS to hide the Streamlit "hamburger" menu and footer for a cleaner look
+st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .stActionButton {display: none;}
+    </style>
+""", unsafe_allow_html=True)
+
 col1, col2 = st.columns([0.15, 0.85])
 
 with col1:
-    # Using the official Arrow Logo from a reliable CDN
-    logo_url = "https://www.arrow.com/arrow-logo.png" 
-    # Fallback to a secondary official link if needed
-    backup_logo = "https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg"
-    
-    try:
-        st.image(logo_url, width=140)
-    except:
-        st.image(backup_logo, width=140)
+    # Stable PNG URL for Arrow Logo
+    logo_url = "https://logos-world.net/wp-content/uploads/2023/05/Arrow-Electronics-Logo.png"
+    st.image(logo_url, width=150)
 
 with col2:
-    # Large, clean Arledge text
-    st.markdown("<h1 style='margin-top: 10px; font-size: 45px; color: #1E293B;'>ARLEDGE</h1>", unsafe_allow_html=True)
+    # Professional ARLEDGE Heading
+    st.markdown("<h1 style='margin-top: -10px; font-size: 50px; color: #1E293B;'>ARLEDGE</h1>", unsafe_allow_html=True)
 
 st.divider()
 
@@ -31,9 +35,9 @@ if 'authorized' not in st.session_state: st.session_state.authorized = False
 
 if not st.session_state.authorized:
     st.markdown("<div style='text-align:center; padding-top:50px;'>", unsafe_allow_html=True)
-    st.write("### Secure Internal Access")
+    st.write("### 🔒 Secure Internal Access")
     pwd = st.text_input("Enter Access Key", type="password")
-    if st.button("Unlock"):
+    if st.button("Unlock Terminal"):
         if pwd == "Arrow2026":
             st.session_state.authorized = True
             st.rerun()
@@ -42,12 +46,16 @@ if not st.session_state.authorized:
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- 4. DATA LOAD ---
+# --- 4. DATA ENGINE ---
 @st.cache_data(ttl=1)
 def load_data():
     try:
+        # Load your CSV
         df = pd.read_csv("sop_data.csv", encoding='utf-8-sig')
         df.columns = df.columns.str.strip()
+        # Add Last_Updated if it's missing from your file
+        if 'Last_Updated' not in df.columns:
+            df['Last_Updated'] = "2026-02-08"
         return df.fillna("")
     except:
         return pd.DataFrame()
@@ -60,18 +68,18 @@ if 'search_query' not in st.session_state: st.session_state.search_query = ""
 
 # --- 6. HOME PAGE (SEARCH) ---
 if st.session_state.view == 'home':
-    # Search input that remembers what you typed
+    # Search input that remembers its value
     query = st.text_input(
-        "", 
+        "Search Box", 
         value=st.session_state.search_query, 
-        placeholder="Search keywords, systems, or ID #...",
+        placeholder="Type System (Unity) or Keyword (RMA)...",
         label_visibility="collapsed"
     ).strip()
     
     st.session_state.search_query = query
 
     if query:
-        # Filter Logic
+        # Filter Logic (Searches across all columns)
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         results = df[mask]
         
@@ -80,21 +88,25 @@ if st.session_state.view == 'home':
                 with st.container():
                     c_a, c_b = st.columns([0.85, 0.15])
                     c_a.markdown(f"### {row['Process']}")
-                    c_a.markdown(f"**System:** `{row['System']}` | Updated: `{row[df.columns[-1]]}`")
-                    if c_b.button("View Details", key=f"v_{idx}"):
+                    c_a.markdown(f"**System:** `{row['System']}` | Updated: `{row['Last_Updated']}`")
+                    if c_b.button("View Detail", key=f"v_{idx}"):
                         st.session_state.selected = row
                         st.session_state.view = 'detail'
                         st.rerun()
                     st.write("---")
         else:
-            st.warning("No matches found in Arledge database.")
+            st.warning("No matches found in the Arledge database.")
     else:
-        st.info("💡 Type a keyword above to start searching.")
+        st.info("💡 Ready. Type a keyword above to find an SOP.")
+        # Optional: Show a few recent items
+        for idx, row in df.head(3).iterrows():
+            st.write(f"🔹 **{row['System']}**: {row['Process']}")
 
 # --- 7. DETAIL PAGE ---
 elif st.session_state.view == 'detail':
     row = st.session_state.selected
     
+    # BACK BUTTON (Restores the home view with your previous search)
     if st.button("← Back to Results"):
         st.session_state.view = 'home'
         st.rerun()
@@ -104,28 +116,33 @@ elif st.session_state.view == 'detail':
     
     with l:
         st.title(row['Process'])
-        st.write(f"**System:** {row['System']}")
+        st.write(f"**System:** {row['System']} | **Revised:** {row['Last_Updated']}")
         
-        st.subheader("Instructions")
-        for step in row['Instructions'].split('<br>'):
+        st.subheader("Action Steps")
+        steps = row['Instructions'].split('<br>')
+        for step in steps:
             st.markdown(f"🔹 {step}")
             
         if row['Email_Template']:
             st.divider()
-            st.subheader("📧 Email Template")
-            # Extract number from search for the template
+            st.subheader("📧 Smart Email Template")
+            
+            # Logic to extract a number from your search query for the template
             num_match = re.search(r'\d+', st.session_state.search_query)
             id_val = num_match.group(0) if num_match else "[ID]"
             tpl = row['Email_Template'].replace("[NUMBER]", id_val)
             
-            st.text_area("Template:", value=tpl, height=180)
+            st.text_area("Template Text:", value=tpl, height=200)
             
-            # Outlook Link
-            sub = tpl.split('\n')[0].replace("Subject: ", "")
-            body = "\n".join(tpl.split('\n')[1:])
-            mailto = f"mailto:?subject={urllib.parse.quote(sub)}&body={urllib.parse.quote(body)}"
-            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:12px;text-decoration:none;border-radius:8px;font-weight:bold;">🚀 Open Outlook</a>', unsafe_allow_html=True)
+            # Outlook Launch Logic
+            lines = tpl.split('\n')
+            subject = lines[0].replace("Subject: ", "") if lines else "Update"
+            body = "\n".join(lines[1:]) if len(lines) > 1 else tpl
+            
+            mailto = f"mailto:?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">🚀 Launch Outlook</a>', unsafe_allow_html=True)
 
     with r:
         if row['Screenshot_URL']:
+            st.markdown("### Visual Reference")
             st.image(row['Screenshot_URL'], use_container_width=True)
