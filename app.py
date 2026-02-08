@@ -3,12 +3,12 @@ import pandas as pd
 import re
 import urllib.parse
 
-# --- 1. CONFIG & INTERFACE THEME ---
+# --- 1. CONFIG & ARLEDGE BRANDING ---
 st.set_page_config(page_title="Arledge Knowledge Terminal", layout="wide", page_icon="🏹")
 
 st.markdown("""
 <style>
-    .stApp { background-color: #FFFFFF; color: #1E293B; }
+    .stApp { background-color: #FFFFFF; }
     .arledge-banner { 
         text-align: center; padding: 40px; 
         background: linear-gradient(90deg, #1E293B 0%, #334155 100%); 
@@ -24,7 +24,7 @@ st.markdown("""
         transition: 0.2s;
     }
     .sop-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .verified-badge { color: #10B981; font-weight: bold; font-size: 14px; }
+    .system-badge { background: #1E293B; color: white; padding: 4px 12px; border-radius: 15px; font-size: 11px; font-weight: 700; }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
@@ -36,55 +36,52 @@ if not st.session_state.authorized:
     st.markdown("<div style='text-align:center; padding-top:100px;'>", unsafe_allow_html=True)
     st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=250)
     st.title("Arledge Knowledge Terminal")
-    st.write("Secure Internal Access Only")
-    
     pwd = st.text_input("Enter Access Key", type="password")
-    if st.button("Unlock Terminal") or (pwd == "Arrow2026"):
+    if st.button("Unlock Terminal"):
         if pwd == "Arrow2026":
             st.session_state.authorized = True
             st.rerun()
-        elif pwd != "":
+        else:
             st.error("Invalid Key")
     st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
-# --- 3. DATA ARCHITECTURE ---
+# --- 3. DATA ENGINE ---
 @st.cache_data(ttl=1)
 def load_arledge_data():
     try:
-        # Load CSV and ensure headers are clean
         df = pd.read_csv("sop_data.csv", encoding='utf-8-sig')
         df.columns = df.columns.str.strip()
+        # Ensure 'Last_Updated' exists, if not, add a default
+        if 'Last_Updated' not in df.columns:
+            df['Last_Updated'] = "Verified 2026"
         return df.fillna("")
     except:
-        # Fallback if file is missing
-        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL", "Email_Template", "Last_Updated"])
+        return pd.DataFrame()
 
 df = load_arledge_data()
 
-# --- 4. NAVIGATION STATE ---
+# --- 4. NAVIGATION & STATE ---
 if 'view' not in st.session_state: st.session_state.view = 'home'
 if 'search_id' not in st.session_state: st.session_state.search_id = ""
 
 # --- 5. SEARCH HOME PAGE ---
 if st.session_state.view == 'home':
-    st.markdown("<div class='arledge-banner'><h1>🏹 Arledge Knowledge Summary</h1><p>Arrow Electronics Operations Repository</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='arledge-banner'><h1>🏹 Arledge Knowledge Terminal</h1><p>Arrow Electronics Operations Repository</p></div>", unsafe_allow_html=True)
     
     # Dashboard Stats
     s1, s2, s3 = st.columns(3)
-    s1.markdown(f"<div class='stat-box'><h3>{len(df)}</h3><p>Total SOPs</p></div>", unsafe_allow_html=True)
+    s1.markdown(f"<div class='stat-box'><h3>{len(df)}</h3><p>Active SOPs</p></div>", unsafe_allow_html=True)
     s2.markdown(f"<div class='stat-box'><h3>{len(df['System'].unique())}</h3><p>Systems Indexed</p></div>", unsafe_allow_html=True)
-    s3.markdown(f"<div class='stat-box'><h3>{len(df[df['Email_Template'] != ''])}</h3><p>Email Templates</p></div>", unsafe_allow_html=True)
+    s3.markdown(f"<div class='stat-box'><h3>{len(df[df['Email_Template'] != ''])}</h3><p>Smart Templates</p></div>", unsafe_allow_html=True)
     
     st.write("---")
-    query = st.text_input("", placeholder="Search by system, keyword, or WEBSO/Case #...", label_visibility="collapsed").strip()
+    query = st.text_input("", placeholder="Search keywords (e.g. RMA, Venlo) or enter ID #...", label_visibility="collapsed").strip()
 
     if query:
-        # Extract ID for dynamic emails
         nums = re.findall(r'\d+', query)
         if nums: st.session_state.search_id = nums[0]
 
-        # Fuzzy search logic
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         results = df[mask]
         
@@ -93,10 +90,49 @@ if st.session_state.view == 'home':
                 st.markdown("<div class='sop-card'>", unsafe_allow_html=True)
                 col_a, col_b = st.columns([0.8, 0.2])
                 col_a.markdown(f"### {row['Process']}")
-                col_a.markdown(f"**System:** `{row['System']}` | Updated: `{row['Last_Updated']}`")
-                if col_b.button("View SOP", key=f"btn_{idx}"):
+                col_a.markdown(f"<span class='system-badge'>{row['System']}</span> | Updated: `{row['Last_Updated']}`", unsafe_allow_html=True)
+                if col_b.button("View Details", key=f"btn_{idx}"):
                     st.session_state.selected = row
                     st.session_state.view = 'detail'
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
         else:
+            st.warning("No matches found in Arledge Knowledge base.")
+    else:
+        st.info("👋 Welcome! Use the search bar above to access Arledge operational workflows.")
+
+# --- 6. DETAIL SOP PAGE ---
+elif st.session_state.view == 'detail':
+    row = st.session_state.selected
+    if st.button("← Back to Arledge Home"):
+        st.session_state.view = 'home'
+        st.rerun()
+    
+    st.divider()
+    l, r = st.columns([0.6, 0.4])
+    
+    with l:
+        st.title(row['Process'])
+        st.write(f"**System:** {row['System']} | **Revised:** {row['Last_Updated']}")
+        
+        st.subheader("Operational Steps")
+        steps = row['Instructions'].split('<br>')
+        for step in steps:
+            st.markdown(f"🔹 {step}")
+            
+        if "Email_Template" in row and row['Email_Template']:
+            st.divider()
+            st.subheader("📧 Smart Email Template")
+            id_fill = st.session_state.search_id if st.session_state.search_id else "[ID]"
+            final_tpl = row['Email_Template'].replace("[NUMBER]", id_fill)
+            st.text_area("Live Template:", value=final_tpl, height=180)
+            
+            sub = final_tpl.split('\n')[0].replace("Subject: ", "")
+            body = "\n".join(final_tpl.split('\n')[1:])
+            mailto = f"mailto:?subject={urllib.parse.quote(sub)}&body={urllib.parse.quote(body)}"
+            st.markdown(f'<a href="{mailto}" style="background:#F97316;color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:bold;display:inline-block;">🚀 Open in Outlook</a>', unsafe_allow_html=True)
+
+    with r:
+        if row['Screenshot_URL']:
+            st.markdown("### Visual Reference")
+            st.image(row['Screenshot_URL'], use_container_width=True)
