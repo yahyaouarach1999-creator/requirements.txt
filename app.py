@@ -64,9 +64,6 @@ try:
         c1.button("Refund Approvals", on_click=lambda: st.write("Search 'Refund' above"))
         c2.button("Venlo Shipping", on_click=lambda: st.write("Search 'Venlo' above"))
         c3.button("Customer Setup", on_click=lambda: st.write("Search 'Address' above"))
-
 except Exception as e:
-    st.error(f"⚠️ Error: Please check your CSV file format. {e}")        st.info("Search for a task above.")
-
-except Exception as e:
-    st.error(f"Data Error: {e}")
+    st.error(f"⚠️ Error: Please check your CSV file format. {e}")
+    st.info("Search for a task above.") # <--- This must be on a new line!
