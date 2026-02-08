@@ -69,14 +69,26 @@ if 'search_id' not in st.session_state: st.session_state.search_id = ""
 if st.session_state.view == 'home':
     st.markdown("<div class='arledge-banner'><h1>🏹 Arledge Knowledge Terminal</h1><p>Arrow Electronics Operations Repository</p></div>", unsafe_allow_html=True)
     
-    # Dashboard Stats
-    s1, s2, s3 = st.columns(3)
-    s1.markdown(f"<div class='stat-box'><h3>{len(df)}</h3><p>Active SOPs</p></div>", unsafe_allow_html=True)
-    s2.markdown(f"<div class='stat-box'><h3>{len(df['System'].unique())}</h3><p>Systems Indexed</p></div>", unsafe_allow_html=True)
-    s3.markdown(f"<div class='stat-box'><h3>{len(df[df['Email_Template'] != ''])}</h3><p>Smart Templates</p></div>", unsafe_allow_html=True)
+  # --- 4. SUMMARY DASHBOARD (INTERACTIVE) ---
+if st.session_state.view == 'home':
+    st.markdown("<div class='arledge-banner'><h1>🏹 Arledge Knowledge Summary</h1></div>", unsafe_allow_html=True)
     
+    # Dashboard Stats as CLICKABLE BUTTONS
+    s1, s2, s3 = st.columns(3)
+    
+    with s1:
+        if st.button(f"📄 {len(df)} Active SOPs"):
+            st.session_state.filter = "all"
+            
+    with s2:
+        if st.button(f"⚙️ {len(df['System'].unique())} Systems Indexed"):
+            st.session_state.filter = "systems"
+            
+    with s3:
+        if st.button(f"📧 {len(df[df['Email_Template'] != ''])} Smart Templates"):
+            st.session_state.filter = "templates"
+
     st.write("---")
-    query = st.text_input("", placeholder="Search keywords (e.g. RMA, Venlo) or enter ID #...", label_visibility="collapsed").strip()
 
     if query:
         nums = re.findall(r'\d+', query)
