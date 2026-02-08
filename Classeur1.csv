@@ -1,0 +1,5 @@
+Category;System;Process;Instructions
+Sales Ops;Salesforce;Customer Email;Search for Account. Use 'Template A' to reply.
+Orders;SWB;Arrow.com Sync;Check SWB for new web orders. Verify Tax ID.
+Finance;Oracle EBS;Address Change;Go to Customers > Sites. Enter new address. Save.
+IT Support;MyConnect;Report System Bug;If Oracle is down, log a ticket on MyConnect.
