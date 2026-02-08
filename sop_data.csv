@@ -1,11 +1,3 @@
 System,Process,Instructions,Screenshot_URL
-Salesforce,Refund Approval,1. Ask the collector for refund approval via email. 2. Attach approval to the Case. 3. Update 'Status' to 'Manager Review'.,https://via.placeholder.com/600x400.png?text=Refund+SOP
-Oracle EBS,Address Change (Venlo),1. Verify VAT number for European compliance. 2. Update Ship-To address in Oracle. 3. Sync from SFDC to ensure alignment.,https://via.placeholder.com/600x400.png?text=Venlo+Tax+Update
-SWB,Credit Hold Release,1. Check the 'Credit Limit' in SWB. 2. If blocked; contact Finance Collector. 3. Do not release without written approval.,https://via.placeholder.com/600x400.png?text=Credit+Hold
-Salesforce,Customer Email Template,Use 'Template A' for general replies. Always CC the Account Manager on external communications.,https://via.placeholder.com/600x400.png?text=Email+Template
-Oracle EBS,VAD Setup,1. Check if VAD (Value Added Distributor) flag is checked. 2. Ensure the 'Parent Account' is correctly linked.,https://via.placeholder.com/600x400.png?text=VAD+Setup
-Salesforce,Escalation Policy,If no reply from the Collector within 4 hours; escalate to Sales Ops Lead with the Case Number.,https://via.placeholder.com/600x400.png?text=Escalation
-MyConnect,IT Helpdesk,For Oracle 'System Error' messages; take a screenshot and submit a ticket under 'Application Support'.,https://via.placeholder.com/600x400.png?text=MyConnect+Help
-Oracle EBS,Credit Memo,1. Search for original Invoice. 2. Select 'Credit' icon. 3. Match the tax line with the original order.,https://via.placeholder.com/600x400.png?text=Credit+Memo
-
-
+Unity / Salesforce,Customer Search Navigation,"1. Log into Unity. 2. Navigate to 'Order Management' > 'Search'. 3. Enter the Customer Name or Account Number. 4. Click the 'Salesforce' link in the results to open the account directly in CRM.",https://via.placeholder.com/600x400.png?text=Unity+Search+UI
+Digital Support,Navigating Roles,"1. Access the 'Digital Customer' section from the Customer Tab. 2. Use the 'Digital Customer Maintenance' screen to view assigned roles. 3. Review the 'Customer Site' to ensure proper alignment between Unity and Salesforce.",https://via.placeholder.com/600x400.png?text=Digital+Customer+Maintenance
