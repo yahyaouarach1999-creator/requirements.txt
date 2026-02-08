@@ -8,4 +8,3 @@ Oracle,Multi-Asset RMA,"1. Open Oracle RMA (Type 04).<br>2. Validate Serials.<br
 Compliance,Sanction Screening,"1. ID ECCN.<br>2. Secure EUS.<br>3. Screen Denied Parties.",https://images.unsplash.com/photo-1450101499163-c8848c66ca85,"",2026-02-08
 Finance,Cash Application,"1. Match Wire.<br>2. Query Unity.<br>3. Apply via FIFO.",https://images.unsplash.com/photo-1563986768609-322da13575f3,"",2026-02-08
 Warehouse,Cycle Count Discrepancy,"1. Freeze Bin.<br>2. Physical count.<br>3. Manager Override if >$500.",https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d,"",2026-02-08
-
