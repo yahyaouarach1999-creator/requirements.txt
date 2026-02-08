@@ -3,119 +3,185 @@ import pandas as pd
 import numpy as np
 
 # 1. CORE CONFIGURATION
-st.set_page_config(page_title="Arrow Ops Academy", layout="wide", page_icon="🎓")
+st.set_page_config(page_title="Ops Academy | Enterprise", layout="wide", page_icon="⚖️")
 
-# 2. THE MASTERCLASS CSS (Coursera Aesthetic)
-# We use a single variable to keep the string safe and easy to close
-academy_style = """
+# 2. EXECUTIVE STYLE SHEET (Muted, Professional, High-Contrast)
+executive_theme = """
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    .stApp { background-color: #FFFFFF; font-family: 'Inter', sans-serif; }
-    
-    /* Sidebar: Deep Oxford Blue */
-    section[data-testid="stSidebar"] { background-color: #002147 !important; }
-    section[data-testid="stSidebar"] * { color: white !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
-    /* Learning Cards */
-    .learning-card {
-        background: #FFFFFF;
-        padding: 35px;
-        border-radius: 24px;
-        border: 1px solid #F3F4F6;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    /* Background and Global */
+    .stApp {
+        background-color: #0F172A; /* Deep Navy Slate */
+        color: #F8FAFC;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Professional Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #1E293B !important;
+        border-right: 1px solid #334155;
+    }
+
+    /* Typography */
+    h1, h2, h3 {
+        color: #F8FAFC !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.02em;
+    }
+
+    /* The "Fancy" Learning Card */
+    .sop-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 40px;
         margin-bottom: 25px;
+        transition: all 0.3s ease;
+    }
+    .sop-card:hover {
+        border-color: #38BDF8; /* Subtle Blue Glow */
+        transform: translateY(-5px);
+    }
+
+    /* System Badge */
+    .badge {
+        background: #334155;
+        color: #38BDF8;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Context Box (The "Why") */
+    .context-box {
+        background: #0F172A;
+        border-left: 4px solid #38BDF8;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 4px;
+        color: #94A3B8;
+        font-style: italic;
+    }
+
+    /* Search Bar Input */
+    .stTextInput input {
+        background-color: #1E293B !important;
+        color: white !important;
+        border: 1px solid #334155 !important;
+        border-radius: 10px !important;
+    }
+
+    /* Buttons */
+    .stButton>button {
+        background: #0284C7 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
         transition: 0.3s;
     }
-    
-    /* Instruction Highlight Box */
-    .instruction-step {
-        background-color: #F9FAFB;
-        border-left: 5px solid #0056D2;
-        padding: 25px;
-        border-radius: 8px;
-        font-size: 17px;
-        line-height: 1.7;
-        color: #374151;
-    }
-
-    /* Coursera-Blue Buttons */
-    .stButton>button {
-        background: #0056D2;
-        color: white;
-        border-radius: 12px;
-        font-weight: 700;
-        height: 55px;
-        border: none;
-        width: 100%;
+    .stButton>button:hover {
+        background: #0EA5E9 !important;
+        box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
     }
 </style>
 """
-st.markdown(academy_style, unsafe_allow_html=True)
+st.markdown(executive_theme, unsafe_allow_html=True)
 
-# 3. SIDEBAR: PROGRESS TRACKER
-with st.sidebar:
-    st.markdown("# 🎓 Ops Academy")
+# 3. DATA ARCHITECTURE
+@st.cache_data
+def get_data():
     try:
-        st.image("logo.png", use_container_width=True)
+        # Loading the CSV you updated
+        df = pd.read_csv("sop_data.csv")
+        return df.replace(np.nan, '', regex=True)
     except:
-        st.info("Branding Image Pending")
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL"])
+
+df = get_data()
+
+# 4. SIDEBAR NAVIGATION
+with st.sidebar:
+    st.markdown("<h2 style='color:#38BDF8;'>⚖️ OPS ACADEMY</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#64748B;'>Enterprise Governance Engine</p>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    st.write("🔒 **CERTIFICATION STATUS**")
+    st.progress(88)
+    st.caption("Advanced Workflow Mastery: 88%")
     
     st.markdown("---")
-    st.write("📈 **YOUR MASTERY PROGRESS**")
-    st.progress(75)
-    st.caption("Advanced Workflow Certification: 75%")
-    st.markdown("---")
-    st.link_button("🌐 UNITY CLOUD", "https://unity.arrow.com")
-    st.link_button("📊 SALESFORCE CRM", "https://arrow.my.salesforce.com")
+    st.markdown("### 🛠️ Quick Access")
+    if st.button("🚨 Crisis Management"): st.session_state.search = "Strategic"
+    if st.button("💰 Financial Integrity"): st.session_state.search = "Finance"
+    if st.button("🌐 Trade Compliance"): st.session_state.search = "Compliance"
+    if st.button("🔄 Reset View"): st.session_state.search = ""
 
-# 4. HERO SECTION
-st.markdown("<h4 style='color:#0056D2; margin-bottom:0;'>MASTERCLASS SERIES</h4>", unsafe_allow_html=True)
-st.title("Strategic Supply Chain Operations")
-st.markdown("Choose a scenario to unlock professional resolution protocols.")
+# 5. HEADER SECTION
+st.markdown("<p style='color:#38BDF8; font-weight:600; margin-bottom:0;'>MASTERCLASS SERIES</p>", unsafe_allow_html=True)
+st.title("Operations & Strategy Repository")
+st.markdown("<p style='color:#94A3B8; font-size:1.1em;'>High-fidelity procedural protocols for global supply chain and enterprise management.</p>", unsafe_allow_html=True)
 
-# 5. DATA LOADING ENGINE
-@st.cache_data
-def load_vault():
-    try:
-        data = pd.read_csv("sop_data.csv")
-        return data.replace(np.nan, '', regex=True)
-    except:
-        return None
+# 6. SEARCH & FILTERING
+if 'search' not in st.session_state:
+    st.session_state.search = ""
 
-df = load_vault()
+query = st.text_input("🔍 Search protocol library (e.g. 'RMA', 'Backorder', 'Sanctions')", value=st.session_state.search)
 
-# 6. SCENARIO BUTTONS (SITUATIONS)
-st.write("### 🎯 Active Scenarios")
-col1, col2, col3, col4 = st.columns(4)
-
-if col1.button("🚨 Emergency Holds"): st.session_state.search = "Emergency"
-if col2.button("🚚 Logistics Mastery"): st.session_state.search = "Venlo"
-if col3.button("💰 Finance Audit"): st.session_state.search = "Finance"
-if col4.button("🔄 Reset Course"): st.session_state.search = ""
-
-# 7. SEARCH BAR
-query = st.text_input("Search Academy database...", value=st.session_state.search if 'search' in st.session_state else "")
-
-# 8. MASTERCLASS CONTENT VIEW
-if query and df is not None:
+# 7. DYNAMIC CONTENT DISPLAY
+if query:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
     if not results.empty:
         for _, row in results.iterrows():
+            # Splitting instructions to isolate the "Strategic Context" for special formatting
+            raw_instr = row['Instructions']
+            if "**STRATEGIC CONTEXT:**" in raw_instr:
+                parts = raw_instr.split("<br><br>", 1)
+                context = parts[0]
+                steps = parts[1] if len(parts) > 1 else ""
+            else:
+                context = ""
+                steps = raw_instr
+
             st.markdown(f"""
-            <div class="learning-card">
-                <p style="color:#0056D2; font-weight:700; font-size:12px; letter-spacing:1px;">MODULE: {row['System'].upper()}</p>
-                <h2 style="color:#111827; margin-top:0; font-size:28px;">{row['Process']}</h2>
-                <div class="instruction-step">
-                    {row['Instructions']}
+            <div class="sop-card">
+                <span class="badge">{row['System']}</span>
+                <h2 style="margin-top:10px;">{row['Process']}</h2>
+                <div class="context-box">
+                    {context}
+                </div>
+                <div style="line-height:1.8; color:#CBD5E1; font-size:1.05em;">
+                    {steps}
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
-            if str(row['Screenshot_URL']).startswith("http"):
-                st.image(row['Screenshot_URL'], use_container_width=True)
+            if "http" in str(row['Screenshot_URL']):
+                st.image(row['Screenshot_URL'], use_container_width=True, caption=f"Protocol Visualization: {row['Process']}")
     else:
-        st.warning("No scenarios found for this query.")
+        st.info(f"No protocols found matching '{query}'.")
 else:
-    st.markdown("<br><p style='text-align:center; color:#9CA3AF;'>Select a module above to reveal the learning materials.</p>", unsafe_allow_html=True)
+    # Landing State: Show Modules
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("""
+        ### 📖 How to use this Academy
+        1. **Select a Module:** Use the sidebar or search bar to find a specific workflow.
+        2. **Understand the 'Why':** Every protocol starts with a Strategic Context box.
+        3. **Execute:** Follow the numbered protocols for 100% compliance.
+        """)
+    with col2:
+        st.markdown("""
+        ### 📊 System Health
+        * **Unity Cloud:** <span style='color:#10B981;'>ONLINE</span>
+        * **SFDC API:** <span style='color:#10B981;'>ONLINE</span>
+        * **Oracle ERP:** <span style='color:#F59E0B;'>DEGRADED</span>
+        """, unsafe_allow_html=True)
