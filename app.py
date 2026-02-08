@@ -1,66 +1,37 @@
 import streamlit as st
 import pandas as pd
 import re
-import urllib.parse
 
-# --- 1. CONFIG & AUTHENTICATION ---
-st.set_page_config(page_title="Arrow Ops Masterclass", layout="wide")
+# --- 1. SECURITY SETTINGS ---
+ACCESS_KEY = "Arrow2026" # This is the key you give to your team
 
-# Simple Login Logic
-if 'auth' not in st.session_state:
-    st.session_state.auth = False
-    st.session_state.role = None
+if 'access_granted' not in st.session_state:
+    st.session_state.access_granted = False
 
-def check_login():
-    st.title("🏹 Arrow Ops Login")
-    user = st.text_input("Username")
-    pwd = st.text_input("Password", type="password")
-    if st.button("Login"):
-        if pwd == "Arrow2026": # USER PASSWORD
-            st.session_state.auth = True
-            st.session_state.role = "User"
-            st.rerun()
-        elif pwd == "ArrowAdmin": # ADMIN PASSWORD
-            st.session_state.auth = True
-            st.session_state.role = "Admin"
-            st.rerun()
-        else:
-            st.error("Invalid Credentials")
-
-if not st.session_state.auth:
-    check_login()
-    st.stop()
-
-# --- 2. DATA ENGINE ---
-@st.cache_data(ttl=1)
-def load_data():
-    return pd.read_csv("sop_data.csv", encoding='utf-8-sig').fillna("")
-
-df = load_data()
-
-# --- 3. THE "ADMIN" EDITOR PAGE ---
-if st.session_state.role == "Admin":
-    with st.sidebar:
-        st.divider()
-        if st.checkbox("🛠️ Open Admin Editor"):
-            st.session_state.view = 'admin'
-
-if st.session_state.get('view') == 'admin':
-    st.title("📝 Master Data Editor")
-    st.warning("You are editing the LIVE database. Changes will reflect for all users.")
+# --- 2. THE LOGIN GATE ---
+if not st.session_state.access_granted:
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
     
-    # Editable Table
-    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
-    
-    if st.button("💾 Save Changes to CSV"):
-        edited_df.to_csv("sop_data.csv", index=False)
-        st.success("Database Updated Successfully!")
-        st.cache_data.clear()
-    
-    if st.button("🔙 Back to Search"):
-        st.session_state.view = 'home'
-        st.rerun()
-    st.stop()
+    with col2:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/e/e0/Arrow_Electronics_Logo.svg", width=200)
+        st.title("Operations Academy")
+        st.info("Please enter the Internal Access Key to proceed.")
+        
+        user_key = st.text_input("Access Key", type="password")
+        
+        if st.button("Enter Terminal"):
+            if user_key == ACCESS_KEY:
+                st.session_state.access_granted = True
+                st.rerun()
+            else:
+                st.error("Invalid Key. Please contact your manager.")
+    st.stop() # Stops the rest of the app from loading until key is correct
 
-# --- 4. STANDARD SEARCH PORTAL (REST OF CODE) ---
-# [Insert the Page 1 Search and Page 2 Detail logic from previous step here]
+# --- 3. THE REST OF YOUR SEARCH APP ---
+# (Once they pass the gate, the search engine below appears)
+
+st.title("🏹 Ops Search Portal")
+st.success("Authorized Access: Internal Arrow Only")
+
+# ... rest of your search and CSV logic goes here ...
