@@ -1,7 +1,71 @@
-System,Process,Instructions,Screenshot_URL
-Unity,"Tier-1 Order Hold Recovery","1. Open 'Header Alert' tab.<br>2. ID Hold: Manual vs Systemic.<br>3. Check SFDC Health; if >95% on-time, request 'Finance Fast-Track' limit increase.<br>4. Check GTS; if 'Denied Party', do not contact client; escalate to Compliance.<br>5. Refresh 'OMT' to sync warehouse.",https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=150&q=80
-SFDC,"Executive Escalation","1. Audit 'Internal Comments' for bottlenecks.<br>2. Set Case Priority: 'Critical'.<br>3. Change Reason: 'Executive Visibility'.<br>4. Tag Regional Director/AE in Chatter.<br>5. Log 'Resolution Plan' for management review.",https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=150&q=80
-Venlo,"High-Value POD Audit","1. Log into Venlo Gateway.<br>2. Verify Signature; check for 'Driver Drop' vs 'Signed'.<br>3. Match GPS coordinates vs Unity Address.<br>4. Discrepancy >50m: File Loss Claim; stage replacement.",https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=150&q=80
-Oracle,"Multi-Asset RMA","1. Open Oracle RMA (Type 04).<br>2. Validate Serial Numbers individually.<br>3. Generate Hazmat labels if Li-Ion present.<br>4. Sync RMA ID to SFDC Case Reference field.",https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=150&q=80
-Finance,"Cash Application","1. Match Wire to Customer/VAT ID.<br>2. Query Unity for open invoices (+/- 1% tolerance).<br>3. Apply via FIFO to clear oldest debt.<br>4. Trigger Credit Release in Unity.",https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=150&q=80
-Compliance,"Sanction Screening","1. ID ECCN in Master Part File.<br>2. Secure C-Level signed EUS.<br>3. Screen name/address in Denied Parties List.<br>4. Upload EUS to SFDC; set 'Trade Block' to 'Authorized'.",https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=150&q=80
+import streamlit as st
+import pandas as pd
+import re
+
+# 1. SETUP
+st.set_page_config(page_title="Arrow Ops Search", layout="wide")
+
+# 2. DATA ENGINE
+@st.cache_data
+def get_data():
+    try:
+        return pd.read_csv("sop_data.csv").fillna("")
+    except:
+        return pd.DataFrame()
+
+df = get_data()
+
+# Initialize Session State
+if 'view_mode' not in st.session_state:
+    st.session_state.view_mode = 'home'
+if 'selected_proc' not in st.session_state:
+    st.session_state.selected_proc = None
+
+# --- SEARCH LOGIC WITH WEBSO DETECTION ---
+def search_logic(query):
+    # Detect WEBSO pattern (e.g., WEBSO followed by numbers)
+    if re.search(r"WEBSO\s*\d+", query, re.IGNORECASE):
+        # Auto-filter for Unity Order Recovery because that's where WEBSOs live
+        return df[df['Process'].str.contains("Order", case=False)]
+    
+    # Standard keyword search
+    return df[df.apply(lambda r: r.astype(str).str.contains(query, case=False).any(), axis=1)]
+
+# --- PAGE 1: GOOGLE-STYLE HOME ---
+if st.session_state.view_mode == 'home':
+    st.markdown("<br><br><br><div style='text-align: center;'>", unsafe_allow_html=True)
+    st.title("🏹 Arrow Ops Terminal")
+    query = st.text_input("", placeholder="Search keywords or Enter Order # (e.g. WEBSO 999)...")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if query:
+        results = search_logic(query)
+        
+        if re.search(r"WEBSO\s*\d+", query, re.IGNORECASE):
+            st.success(f"📍 Order Reference Detected: Searching Order Management Protocols...")
+
+        if not results.empty:
+            for idx, row in results.iterrows():
+                if st.button(f"📄 {row['Process']} ({row['System']})", key=f"res_{idx}"):
+                    st.session_state.selected_proc = row
+                    st.session_state.view_mode = 'detail'
+                    st.rerun()
+        else:
+            st.error("No protocol found for that reference.")
+
+# --- PAGE 2: PROCESS DETAIL ---
+elif st.session_state.view_mode == 'detail':
+    proc = st.session_state.selected_proc
+    if st.button("← Back to Search"):
+        st.session_state.view_mode = 'home'
+        st.rerun()
+    
+    st.divider()
+    col1, col2 = st.columns([0.7, 0.3])
+    with col1:
+        st.caption(f"SYSTEM: {proc['System']}")
+        st.header(proc['Process'])
+        st.write(proc['Instructions'].replace("<br>", "\n"))
+    with col2:
+        if proc['Screenshot_URL']:
+            st.image(proc['Screenshot_URL'], caption="System Preview")
