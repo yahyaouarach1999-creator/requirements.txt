@@ -1,66 +1,135 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import base64
 
 # 1. Page Config
 st.set_page_config(page_title="Arrow Ops Intelligence", layout="wide", page_icon="🏹")
 
-# 2. Enterprise CSS Injection (The "Mature" Look)
+# 2. Enterprise CSS (Executive Dark Theme)
 st.markdown("""
     <style>
-    /* Main App Background - Slate Gray */
+    /* Main Background */
     .stApp {
-        background-color: #111827;
-        color: #F9FAFB;
+        background-color: #000000;
+        color: #FFFFFF;
     }
     
     /* Sidebar Styling */
     section[data-testid="stSidebar"] {
-        background-color: #1F2937 !important;
-        border-right: 1px solid #374151;
+        background-color: #111111 !important;
+        border-right: 1px solid #333333;
     }
 
-    /* Professional Card Styling */
+    /* Clean Card Design */
     div[data-testid="column"] {
-        background: #1F2937;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #374151;
-        transition: transform 0.2s, border-color 0.2s;
+        background: #111111;
+        padding: 25px;
+        border-radius: 4px;
+        border: 1px solid #222222;
     }
     
-    div[data-testid="column"]:hover {
-        border-color: #EF4444; /* Arrow Red Glow */
-        transform: translateY(-5px);
-    }
-
-    /* Custom Header Text */
-    h1 {
-        font-family: 'Inter', sans-serif;
-        font-weight: 800;
-        letter-spacing: -1px;
-        color: #FFFFFF;
-    }
-
-    /* Mature Button Styling */
+    /* High-Contrast Action Buttons */
     .stButton>button {
         width: 100%;
-        background-color: #374151;
-        color: white;
+        background-color: #FFFFFF;
+        color: #000000;
         border: none;
-        border-radius: 8px;
-        padding: 10px;
-        font-weight: 600;
+        border-radius: 2px;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
+        height: 45px;
+        transition: all 0.3s;
     }
 
     .stButton>button:hover {
-        background-color: #EF4444 !important;
-        color: white !important;
+        background-color: #CCCCCC !important;
+        color: #000000 !important;
+        transform: scale(1.02);
     }
 
-    /* Search Box Styling */
+    /* Search Bar Integration */
+    .stTextInput input {
+        background-color: #111111 !important;
+        color: white !important;
+        border: 1px solid #333333 !important;
+        border-radius: 0px !important;
+    }
+
+    /* Metrics and Status */
+    [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 3. Sidebar Navigation
+with st.sidebar:
+    # Adding the black and white logo to the sidebar
+    st.image("logo.png", use_container_width=True)
+    st.markdown("<h3 style='text-align: center; letter-spacing: 3px;'>CORE OPERATIONS</h3>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.link_button("📊 SALESFORCE CRM", "https://arrow.my.salesforce.com")
+    st.link_button("⚙️ UNITY SYSTEM", "https://unity.arrow.com")
+    st.link_button("📂 MYCONNECT", "https://myconnect.arrow.com")
+    st.markdown("---")
+    st.caption("v3.0.0 | ENTERPRISE EDITION")
+
+# 4. Executive Header
+col_logo, col_text = st.columns([1, 4])
+with col_logo:
+    st.image("logo.png", width=150) # Secondary Logo for Header
+
+with col_text:
+    st.markdown("<h1 style='margin-bottom: 0px;'>Ops Intelligence Portal</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #888888; letter-spacing: 2px;'>GLOBAL PROCESS & SYSTEMS EXCELLENCE</p>", unsafe_allow_html=True)
+
+# 5. Data Retrieval Logic
+try:
+    df = pd.read_csv("sop_data.csv")
+    df = df.replace(np.nan, '', regex=True)
+    
+    if 'search' not in st.session_state: st.session_state.search = ""
+    def set_search(term): st.session_state.search = term
+
+    # 6. Command Center
+    st.markdown("### **COMMAND CENTER**")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("ORDER STATUS"): set_search("Unity")
+    with c2:
+        if st.button("LOGISTICS"): set_search("Venlo")
+    with c3:
+        if st.button("FINANCE"): set_search("Refund")
+    with c4:
+        if st.button("RESET"): set_search("")
+
+    # 7. Enterprise Search
+    query = st.text_input("", value=st.session_state.search, placeholder="Search Enterprise Database (e.g. Unity, Salesforce, Case Follow-up)...")
+
+    # 8. SOP Output (Based on SOP-7 Documentation)
+    if query:
+        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+        results = df[mask]
+        
+        if not results.empty:
+            for _, row in results.iterrows():
+                with st.container():
+                    st.markdown(f"<h2 style='color: #FFFFFF; border-bottom: 1px solid #333333;'>{row['System']} | {row['Process']}</h2>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='background-color: #111111; padding: 20px; border-left: 4px solid #FFFFFF;'>{row['Instructions']}</div>", unsafe_allow_html=True)
+                    # Use provided doc logic for alerts
+                    if "Unity" in row['System']:
+                        st.warning("⚠️ ALERT OVERVIEW: Releases of alerts cannot be expedited. Coordinate with the appropriate team.")
+                    st.markdown("<br>", unsafe_allow_html=True)
+        else:
+            st.error("DATABASE QUERY: No matching records found.")
+    else:
+        st.write("---")
+        st.markdown("<p style='text-align: center; color: #555555;'>Awaiting Command... Select a module or search to retrieve SOP data.</p>", unsafe_allow_html=True)
+
+except Exception as e:
+    st.error(f"INTEGRITY ERROR: {e}")    /* Search Box Styling */
     .stTextInput input {
         background-color: #1F2937 !important;
         color: white !important;
