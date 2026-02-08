@@ -6,8 +6,10 @@ import numpy as np
 st.set_page_config(page_title="Arrow Sales Ops Portal", layout="wide", page_icon="🏹")
 
 # 2. Sidebar with Logo and Links
-# Note: I'm using the official Arrow logo URL
-st.sidebar.image("https://www.arrow.com/assets/images/arrow-logo.svg", width=200)
+# Updated Logo Link (More stable PNG version)
+logo_url = "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Arrow_Electronics_logo.svg/1200px-Arrow_Electronics_logo.svg.png"
+st.sidebar.image(logo_url, width=200)
+
 st.sidebar.title("🚀 Quick Access")
 st.sidebar.markdown("---")
 st.sidebar.link_button("🔗 Open Salesforce", "https://arrow.my.salesforce.com")
@@ -25,8 +27,7 @@ try:
     df.columns = df.columns.str.strip()
     df = df.replace(np.nan, '', regex=True)
 
-    # 5. Search Logic with "Popular Topics" integration
-    # We use 'session_state' to allow buttons to change the text input
+    # 5. Search Logic
     if 'search_query' not in st.session_state:
         st.session_state.search_query = ""
 
@@ -35,32 +36,54 @@ try:
 
     col1, col2 = st.columns([2, 1])
     with col1:
-        search = st.text_input("🔍 Search for a process", value=st.session_state.search_query)
+        # We use a key here to link the widget to session state
+        search = st.text_input("🔍 Search for a process", value=st.session_state.search_query, key="main_search")
 
-    # 6. Popular Topics Buttons (Now they work!)
+    # 6. Popular Topics Buttons
     st.write("### 💡 Popular Topics")
     c1, c2, c3, c4 = st.columns(4)
     if c1.button("📑 Refund Approvals"):
-        set_search("Refund")
+        st.session_state.search_query = "Refund"
         st.rerun()
     if c2.button("🌍 Venlo Shipping"):
-        set_search("Venlo")
+        st.session_state.search_query = "Venlo"
         st.rerun()
     if c3.button("👤 Customer Setup"):
-        set_search("Address")
+        st.session_state.search_query = "Address"
         st.rerun()
     if c4.button("🔄 Clear Search"):
-        set_search("")
+        st.session_state.search_query = ""
         st.rerun()
 
     st.markdown("---")
 
     # 7. Display Results
-    # Use either the typed search or the button search
-    query = search if search else st.session_state.search_query
+    query = st.session_state.search_query if not search else search
 
     if query:
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+        filtered = df[mask]
+        
+        if not filtered.empty:
+            for _, row in filtered.iterrows():
+                with st.expander(f"📂 {row.get('System', 'System')} - {row.get('Process', 'Process')}"):
+                    st.write("### 📝 Instructions")
+                    st.info(row.get('Instructions', 'No instructions found'))
+                    
+                    img_url = row.get('Screenshot_URL', '')
+                    # Image safety check
+                    if str(img_url).startswith('http'):
+                        try:
+                            st.image(img_url, use_container_width=True)
+                        except:
+                            st.error("Could not load image. Please check the URL in your CSV.")
+        else:
+            st.warning(f"No results found for '{query}'.")
+    else:
+        st.info("Select a popular topic above or type in the search bar to begin.")
+
+except Exception as e:
+    st.error(f"⚠️ Error: {e}")        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         filtered = df[mask]
         
         if not filtered.empty:
