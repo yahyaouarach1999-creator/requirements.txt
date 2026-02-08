@@ -2,39 +2,83 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-# 1. Page Configuration & Professional Theme
-st.set_page_config(page_title="Sales Ops Knowledge Hub", layout="wide", page_icon="🛡️")
+# 1. Page Configuration
+st.set_page_config(page_title="Arrow Sales Ops Portal", layout="wide", page_icon="🏹")
 
-# Custom CSS to make it look like a real portal
-st.markdown("""
-    <style>
-    .main { background-color: #f5f7f9; }
-    .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #007bff; color: white; }
-    .stExpander { background-color: white !important; border-radius: 10px !important; box-shadow: 0px 2px 5px rgba(0,0,0,0.1); }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 2. Sidebar with Direct Links
+# 2. Sidebar with Logo and Links
+# Note: I'm using the official Arrow logo URL
+st.sidebar.image("https://www.arrow.com/assets/images/arrow-logo.svg", width=200)
 st.sidebar.title("🚀 Quick Access")
 st.sidebar.markdown("---")
 st.sidebar.link_button("🔗 Open Salesforce", "https://arrow.my.salesforce.com")
 st.sidebar.link_button("🔗 Open MyConnect", "https://myconnect.arrow.com")
-st.sidebar.link_button("🔗 Open Oracle EBS", "https://ebs.arrow.com") # Update URL if different
+st.sidebar.link_button("🔗 Open Oracle EBS", "https://ebs.arrow.com")
 st.sidebar.markdown("---")
-st.sidebar.info("Support: For tool access, contact the IT Helpdesk.")
 
 # 3. App Header
 st.title("🛡️ Sales Ops Knowledge Hub")
 st.subheader("Internal SOPs & Process Navigation")
 
-# 4. Data Loading Logic
+# 4. Data Loading
 try:
-    # sep=None detects if your CSV uses , or ; automatically
     df = pd.read_csv("sop_data.csv", sep=None, engine='python')
     df.columns = df.columns.str.strip()
     df = df.replace(np.nan, '', regex=True)
 
-    # 5. Search Bar and Interface
+    # 5. Search Logic with "Popular Topics" integration
+    # We use 'session_state' to allow buttons to change the text input
+    if 'search_query' not in st.session_state:
+        st.session_state.search_query = ""
+
+    def set_search(term):
+        st.session_state.search_query = term
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        search = st.text_input("🔍 Search for a process", value=st.session_state.search_query)
+
+    # 6. Popular Topics Buttons (Now they work!)
+    st.write("### 💡 Popular Topics")
+    c1, c2, c3, c4 = st.columns(4)
+    if c1.button("📑 Refund Approvals"):
+        set_search("Refund")
+        st.rerun()
+    if c2.button("🌍 Venlo Shipping"):
+        set_search("Venlo")
+        st.rerun()
+    if c3.button("👤 Customer Setup"):
+        set_search("Address")
+        st.rerun()
+    if c4.button("🔄 Clear Search"):
+        set_search("")
+        st.rerun()
+
+    st.markdown("---")
+
+    # 7. Display Results
+    # Use either the typed search or the button search
+    query = search if search else st.session_state.search_query
+
+    if query:
+        mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+        filtered = df[mask]
+        
+        if not filtered.empty:
+            for _, row in filtered.iterrows():
+                with st.expander(f"📂 {row.get('System', 'System')} - {row.get('Process', 'Process')}"):
+                    st.write("### 📝 Instructions")
+                    st.info(row.get('Instructions', 'No instructions found'))
+                    
+                    img_url = row.get('Screenshot_URL', '')
+                    if str(img_url).startswith('http'):
+                        st.image(img_url, use_container_width=True)
+        else:
+            st.warning(f"No results found for '{query}'.")
+    else:
+        st.info("Select a popular topic above or type in the search bar to begin.")
+
+except Exception as e:
+    st.error(f"⚠️ Error: {e}")    # 5. Search Bar and Interface
     col1, col2 = st.columns([2, 1])
     with col1:
         search = st.text_input("🔍 What are you looking for?", placeholder="e.g. Refund, Address Change, Venlo...")
