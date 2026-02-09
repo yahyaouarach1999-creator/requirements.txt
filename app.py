@@ -1,7 +1,16 @@
-# --- 2. THE PERMANENT LOGO FIX (BASE64) ---
+import streamlit as st
+import pandas as pd
+import re
+import urllib.parse
+
+# --- 1. SETTINGS ---
+st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
+
+# --- 2. DEFINE LOGO FIRST (To avoid NameError) ---
 LOGO_SVG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0Y5NzMxNiIgZD0iTTEyIDJMMiA3bDEwIDUgMTAtNXYxMEgxMlYyMmw4LTUgNC01Vjd6Ii8+PC9zdmc+"
 
-# Use double {{ }} for CSS inside an f-string
+# --- 3. UI & VISIBILITY FIX ---
+# Note the double {{ }} for CSS to work inside an f-string
 st.markdown(f"""
     <style>
         #MainMenu {{ visibility: hidden; }}
@@ -33,10 +42,11 @@ st.markdown(f"""
             margin-left: 20px;
             letter-spacing: 2px;
         }}
-        /* Visibility Fix for typing */
-        .stTextInput input {{
-            color: #000000 !important;
-            background-color: #FFFFFF !important;
+        
+        /* FIX FOR INVISIBLE TYPING */
+        input {{
+            color: #000000 !important; /* Black text */
+            background-color: #FFFFFF !important; /* White background */
         }}
         label, p, .stMarkdown {{
             color: #1E293B !important;
@@ -50,3 +60,47 @@ st.markdown(f"""
         <div class="title-text">ARLEDGE</div>
     </div>
 """, unsafe_allow_html=True)
+
+# --- 4. SECURITY GATE ---
+if 'authorized' not in st.session_state: 
+    st.session_state.authorized = False
+
+if not st.session_state.authorized:
+    st.info("🔒 Secure Terminal")
+    pwd = st.text_input("Enter Key", type="password")
+    if st.button("Unlock") or (pwd == "Arrow2026"):
+        if pwd == "Arrow2026":
+            st.session_state.authorized = True
+            st.rerun()
+        elif pwd != "":
+            st.error("Invalid")
+    st.stop()
+
+# --- 5. DATA ENGINE ---
+@st.cache_data(ttl=1)
+def load_data():
+    try:
+        df = pd.read_csv("sop_data.csv", encoding='utf-8-sig').fillna("")
+        df.columns = df.columns.str.strip()
+        return df
+    except Exception as e:
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL", "Email_Template", "Last_Updated"])
+
+df = load_data()
+
+# --- 6. SEARCH LOGIC ---
+st.write("### 🔍 Search Database")
+query = st.text_input("Start typing to search SOPs...", placeholder="e.g. Password Reset").strip()
+
+if query:
+    mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
+    results = df[mask]
+    
+    if not results.empty:
+        for idx, row in results.iterrows():
+            with st.expander(f"{row['System']} - {row['Process']}"):
+                st.markdown(f"**Instructions:**\n{row['Instructions']}")
+                if row['Email_Template']:
+                    st.code(row['Email_Template'], language="text")
+    else:
+        st.warning("No matches found.")
