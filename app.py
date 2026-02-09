@@ -1,3 +1,18 @@
+# --- ADMIN SIDEBAR LOGIC ---
+st.sidebar.title("⚙️ Admin Settings")
+
+# 1. Click the Checkbox to reveal the tools
+if st.sidebar.checkbox("🚀 Smart Admin Upload"):
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("SOP Training Portal")
+    
+    # 2. This creates the 'Browse Files' button
+    new_pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
+    
+    # 3. This creates the 'Action' button
+    if new_pdf and st.sidebar.button("✨ Extract & Append to Database"):
+        # The logic we wrote earlier goes here...
+        st.sidebar.write("Processing...")
 import streamlit as st
 import pandas as pd
 import re
