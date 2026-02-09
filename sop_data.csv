@@ -1,13 +1,12 @@
-System,Process,Instructions,Training_Link,Screenshot_URL,Email_Template,Last_Updated
-Finance,Collector: Alexis Flores,"**Alpha**: A, B, T, W, C, H<br>**Email**: alexis.flores@arrow.com",https://rise.articulate.com/share/rFBi_4r0VGm5QrKFVuciaeQ6g5lqCoa,"","",2026-02-09
-Finance,Collector: Iliana Robles,"**Alpha**: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z<br>**Email**: iliana.robles@arrow.com",https://rise.articulate.com/share/rFBi_4r0VGm5QrKFVuciaeQ6g5lqCoa,"","",2026-02-09
-Finance,Collector: Valeria Sanchez,"**Alpha**: L, P, M, N, O, R, G<br>**Email**: valeria.sanchez@arrow.com",https://rise.articulate.com/share/rFBi_4r0VGm5QrKFVuciaeQ6g5lqCoa,"","",2026-02-09
-Foundation,Arrow History & Overview,"Review Arrow Electronics history and global company overview.",https://rise.articulate.com/share/t5U3N02mdyT2LxbphLVDOscNIgFvZvhu,https://images.unsplash.com/photo-1516321318423-f06f85e504b3,"",2026-02-09
-Foundation,Electronic Components Basics,"Learn the basics of electronic component categories and functions.",https://rise.articulate.com/share/t5U3N02mdyT2LxbphLVDOscNIgFvZvhu,https://images.unsplash.com/photo-1516321318423-f06f85e504b3,"",2026-02-09
-Arrow.com,Account Creation,"Step-by-step process for creating a user account on Arrow.com.",https://rise.articulate.com/share/bSnWHGahB2UrNZ7Bzp94tMVSMkZCNj2,https://images.unsplash.com/photo-1563986768609-322da13575f3,"",2026-02-09
-Verical.com,Website Overview,"Navigation and overview of the Verical.com marketplace.",https://rise.articulate.com/share/B-bwYicasi1ib07PvYsUhielMKEsEpj#/,https://images.unsplash.com/photo-1460925895917-afdab827c52f,"",2026-02-09
-Salesforce,Agent Console Selection,"Ensure you are in 'Agent Console Lightning' app via the 9-dot App Launcher.",https://rise.articulate.com/share/q4ZSeqn0Gb37w9DjDTd4UFsoK8Z8LYOF,https://images.unsplash.com/photo-1552664730-d307ca884978,"",2026-02-09
-Oracle,Order Status & Invoices,"Check sales order status and download finalized invoices.",https://rise.articulate.com/share/c1Aeu34bSLkeV04nypGs6nkXqpxP8m1z,https://images.unsplash.com/photo-1454165205744-3b78555e5572,"",2026-02-09
-Support,ETQ Cancellations,"Request order cancellations via the ETQ process in the Connect Now portal.",https://rise.articulate.com/share/ES3-E50zEWJQ4onHPPatEaHZZsU0NFdP,https://images.unsplash.com/photo-1551288049-bebda4e38f71,"",2026-02-09
-APAC Support,Asia Warehouse Contacts,"W/H A01/A63/B04: JEFF.KWOK@arrowasia.com<br>W/H A03: dongsheng.sun@arrowasia.com<br>W/H B05/D51/A47: JB.SHIPPING@arrowasia.com.","","","",2026-02-09
-Finance,Proof of Payment Submissions,"Forward proof to: vericalcia@arrow.com, wireremit@arrow.com. **Always include the account collector.**",https://rise.articulate.com/share/rFBi_4r0VGm5QrKFVuciaeQ6g5lqCoa,https://images.unsplash.com/photo-1554224155-1696413565d3,"Subject: POP Request",2026-02-09
+System,Process,Instructions,Rationale,Last_Updated
+Finance,Collector: Alexis Flores,"**Alpha**: A, B, T, W, C, H<br>**Email**: alexis.flores@arrow.com","Primary collector for Group A-H.",2026-02-09
+Finance,Collector: Iliana Robles,"**Alpha**: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z<br>**Email**: iliana.robles@arrow.com","Handles special chars and secondary alpha groups.",2026-02-09
+Finance,Collector: Valeria Sanchez,"**Alpha**: L, P, M, N, O, R/G<br>**Email**: valeria.sanchez@arrow.com","Handles Group L-O and G/R.",2026-02-09
+SOP 7,Sure Ship Domestic (Warehouse VXX),"1. Go to ETQ Portal > eRequests.<br>2. Select Warehouse Requests > Sure Ship Domestic.<br>3. Enter Sales Order and select Host AC Prod.","Use for Reno warehouse if delivery is stuck for 2+ days.",2026-02-09
+SOP 7,Receiving Expedite (Reno),"1. Use ETQ portal > eRequests.<br>2. Select Receiving Expedite – Draft.<br>3. Provide Unity/Carrier info.","Use if items show delivered but are not received after 3 days.",2026-02-09
+SOP 7,Hong Kong Warehouse Expedite,"Email URGENTRECEIVING.HK@arrowasia.com with PO/SO and Tracking info.","For HK items in 'Awaiting Receipt' for 3+ days.",2026-02-09
+SOP 7,Cancellation Request,"1. Check Unity Leg1 for tracking.<br>2. If no tracking: Open Salesforce case.<br>3. For Supplier orders: Email vendor contact.","Verify tracking before attempting cancellation.",2026-02-09
+SOP 7,Venlo (EMEA) Logistics,"Sure Ship: ecommerce.dlc.emea@arrow.com<br>Receiving: business.support.pdc.emea@arrow.com.","Include PO# and Delivery ID in the subject.",2026-02-09
+SOP 7,Packing List & CoC (Reno),"Packing List: Use wms-prod.arrow.com/PAWMSReprints/<br>Non-Military CoC: arrow.tfaforms.net/4865283.","Specific links for Reno [VXX] warehouse.",2026-02-09
+Finance,Proof of Payment Submissions,"Forward proof to: vericalcia@arrow.com, wireremit@arrow.com. **Always include the account collector.**","Requires collector CC to process.",2026-02-09
+APAC Support,Asia Warehouse Contacts,"W/H A01/A63/B04: JEFF.KWOK@arrowasia.com<br>W/H A03: dongsheng.sun@arrowasia.com<br>W/H B05/D51/A47: JB.SHIPPING@arrowasia.com.","Key contacts for APAC logistics.",2026-02-09
