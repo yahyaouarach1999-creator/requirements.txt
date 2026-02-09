@@ -16,7 +16,6 @@ LINKS = {
 st.markdown(f"""
     <style>
         .stApp {{ background-color: #FFFFFF; }}
-        /* Header Styling */
         .main-header {{
             background-color: #1E293B;
             padding: 25px;
@@ -26,13 +25,11 @@ st.markdown(f"""
             margin-bottom: 20px;
         }}
         .main-header h1 {{ margin: 0; font-weight: 800; }}
-        /* Expander Styling */
         .stExpander {{
             border: 1px solid #E2E8F0 !important;
             border-radius: 8px !important;
             margin-bottom: 10px !important;
         }}
-        /* Small Footer SOS */
         .footer {{
             position: fixed;
             left: 0;
@@ -76,7 +73,7 @@ def load_data():
 df = load_data()
 
 # --- 6. SEARCH INTERFACE ---
-query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a process, system, or alpha letter...")
+query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a process (e.g., 'Same Meaning', 'QMS', 'SOP')...")
 
 # --- 7. INTERACTIVE DISPLAY (Clickable Titles) ---
 if query and not df.empty:
@@ -85,17 +82,14 @@ if query and not df.empty:
     
     if not results.empty:
         for _, row in results.iterrows():
-            # Big Title that reveals info when clicked
             with st.expander(f"📌 {row.get('Process', 'Module')}", expanded=False):
-                st.markdown(row.get('Instructions', ''), unsafe_allow_html=True)
-                # If a link exists, it remains accessible only inside the expanded area
-                proc_link = str(row.get('Training_Link', '')).strip()
-                if proc_link.startswith("http"):
-                    st.markdown(f"[Click here for additional resource]({proc_link})")
+                st.markdown(f"**Instructions:**\n{row.get('Instructions', '')}", unsafe_allow_html=True)
+                if row.get('Rationale'):
+                    st.info(f"**Rationale:** {row['Rationale']}")
     else:
         st.info("No matching modules found.")
 else:
-    st.caption("Enter search terms above to view contacts and process details.")
+    st.caption("Enter search terms above to view process details and examples.")
 
 # --- 8. SOS FOOTER ---
 st.markdown(f"""
