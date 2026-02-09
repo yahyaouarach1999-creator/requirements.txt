@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
+st.set_page_config(page_title="Arledge  Center", layout="wide", page_icon="🏹")
 
 # --- CUSTOM CSS ---
 st.markdown("""
@@ -67,16 +67,16 @@ def load_data():
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
-query = st.text_input("🔍 Search 28 Technical Procedures", placeholder="Search 'Verification', 'Dropship', 'Alerts'...")
+query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="Search 'Verification', 'Price Release', 'Dropship'...")
 
 if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
     if not results.empty:
-        for _, row in results.iterrows():
+        for index, row in results.iterrows():
             with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
                 st.caption(f"**Rationale:** {row['Rationale']}")
                 st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-                if st.button(f"Report Inaccuracy: {row['Process']}", key=row['Process']):
-                    st.info("Report logged. Please email Yahya with the correction.")
+                if st.button(f"🚩 Report Inaccuracy", key=f"report_{index}"):
+                    st.toast(f"Report logged for {row['Process']}. Please email details to Yahya.")
     else:
         st.warning("No matches found.")
