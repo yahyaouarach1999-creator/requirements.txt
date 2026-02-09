@@ -16,7 +16,8 @@ st.markdown("""
         .nano-tile:hover { border-color: #F97316; background-color: #F1F5F9; transform: translateY(-1px); }
         .nano-label { font-size: 0.6rem; font-weight: 900; color: #64748B; text-transform: uppercase; margin-bottom: 2px; }
         .instruction-box { white-space: pre-wrap; font-family: 'Consolas', monospace; font-size: 0.85rem; background: #1E293B; color: #F8FAFC; padding: 15px; border-left: 5px solid #F97316; border-radius: 4px; }
-        .stButton>button { border-radius: 20px; }
+        /* Ensuring the Report Issue button stands out */
+        .stButton>button { border-radius: 10px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -74,13 +75,16 @@ if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
     if not results.empty:
         for index, row in results.iterrows():
-            # Original structure: Expander with details inside
-            with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
-                st.caption(f"**Rationale:** {row['Rationale']}")
-                st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-                
-                # ADDED: Button with unique key for reporting
-                if st.button(f"🚩 Report Error", key=f"err_{index}"):
-                    st.error(f"Error flagged for: {row['Process']}. Please notify Yahya.")
+            # Standard View
+            st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+            st.caption(f"**Rationale:** {row['Rationale']}")
+            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            
+            # --- THE VISIBLE REPORT ISSUE BUTTON ---
+            # Unique key 'issue_index' ensures it displays for every result
+            if st.button("🚩 Report Issue", key=f"issue_{index}"):
+                st.error(f"Issue logged for {row['Process']}. Please notify Yahya.")
+            
+            st.markdown("---")
     else:
         st.warning("No matches found.")
