@@ -16,6 +16,7 @@ st.markdown("""
             position: fixed; left: 0; bottom: 0; width: 100%; background-color: #F8FAFC;
             color: #64748B; text-align: center; padding: 8px; font-size: 0.75rem; border-top: 1px solid #E2E8F0;
         }
+        .instructions-text { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #334155; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -40,7 +41,7 @@ def load_all_data():
         return pd.DataFrame()
 
 df = load_all_data()
-query = st.text_input("🔍 Search Entire Knowledge Base", placeholder="Search by SOP, Module, or Process...")
+query = st.text_input("🔍 Search Entire Knowledge Base (SOP 7, Dropship, Syllabus)", placeholder="Search 'V90', 'IT Ticket', 'Dropship', 'Module 6'...")
 
 # --- INTERACTIVE SEARCH RESULTS ---
 if query and not df.empty:
@@ -50,14 +51,13 @@ if query and not df.empty:
     if not results.empty:
         for _, row in results.iterrows():
             with st.expander(f"📌 {row['System']} | {row['Process']}"):
-                st.markdown(f"### **Instructions:**\n{row['Instructions']}", unsafe_allow_html=True)
-                if 'Rationale' in row and row['Rationale'] != "N/A":
-                    st.info(f"💡 **Context/Rationale:** {row['Rationale']}")
-                if 'Training_Link' in row and row['Training_Link'] != "N/A":
-                    st.write(f"🔗 [Access Full Training Module]({row['Training_Link']})")
+                st.markdown(f"**Description/Scenario:**\n{row['Rationale']}")
+                st.divider()
+                st.markdown(f"**Full Procedure:**")
+                st.markdown(f'<div class="instructions-text">{row["Instructions"]}</div>', unsafe_allow_html=True)
     else:
         st.warning("No matching procedures found.")
 else:
-    st.info("Enter a keyword to view the full SOP or Training step.")
+    st.info("The knowledge base is fully updated with all 3 documents. Enter a keyword to begin.")
 
 st.markdown('<div class="footer">🆘 Technical Support: yahya.ouarach@arrow.com</div>', unsafe_allow_html=True)
