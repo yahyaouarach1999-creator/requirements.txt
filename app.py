@@ -12,7 +12,7 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 # --- AI CONFIGURATION ---
 try:
     # Using your provided key
-    API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII" 
+    API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE" 
     genai.configure(api_key=API_KEY)
     
     # FIX: Added 'models/' prefix to resolve the 'NotFound' error
