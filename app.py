@@ -23,6 +23,13 @@ st.markdown("""
             border-left: 5px solid #F97316;
             border-radius: 5px; 
         }
+        .collector-box {
+            background: #FFF7ED;
+            padding: 15px;
+            border: 1px solid #FDBA74;
+            border-radius: 5px;
+            color: #7C2D12;
+        }
         .footer { position: fixed; left: 0; bottom: 0; width: 100%; background: #F8FAFC; text-align: center; padding: 5px; font-size: 0.7rem; border-top: 1px solid #E2E8F0; }
     </style>
 """, unsafe_allow_html=True)
@@ -47,7 +54,7 @@ def load_data():
     except: return pd.DataFrame()
 
 df = load_data()
-query = st.text_input("🔍 Search Full Technical Procedures", placeholder="Search 'Sure Ship', 'V90', 'Dropship', 'Alerts'...")
+query = st.text_input("🔍 Search Full Technical Procedures & Collectors", placeholder="Search 'V90', 'Alexis', 'Sure Ship', 'Dropship'...")
 
 if query and not df.empty:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
@@ -56,10 +63,13 @@ if query and not df.empty:
     if not results.empty:
         for _, row in results.iterrows():
             with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
-                st.markdown(f"**Application/Context:** {row['Rationale']}")
-                st.markdown("**Full Un-summarized Process:**")
-                st.markdown(f'<div class="instructions-text">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                if row['System'] == 'Finance':
+                    st.markdown(f'<div class="collector-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**Application/Context:** {row['Rationale']}")
+                    st.markdown("**Full Un-summarized Process:**")
+                    st.markdown(f'<div class="instructions-text">{row["Instructions"]}</div>', unsafe_allow_html=True)
     else: st.warning("No matches found for that keyword.")
-else: st.info("The portal is loaded with 100% of the SOP 7 and Dropship data. Enter a keyword to display the full text.")
+else: st.info("Enter a keyword to display full text from SOP 7, Dropship manuals, or Collector contacts.")
 
 st.markdown('<div class="footer">🆘 Support: yahya.ouarach@arrow.com</div>', unsafe_allow_html=True)
