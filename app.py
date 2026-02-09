@@ -11,10 +11,11 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 
 # --- AI CONFIGURATION ---
 try:
+    # Using your provided key
     API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII" 
     genai.configure(api_key=API_KEY)
     
-    # CHANGED: Added "models/" prefix for better compatibility
+    # FIX: Added 'models/' prefix to resolve the 'NotFound' error
     model = genai.GenerativeModel('models/gemini-1.5-flash') 
 except Exception:
     model = None
@@ -24,7 +25,7 @@ def extract_pdf_text(uploaded_file):
     reader = PdfReader(uploaded_file)
     text = ""
     for page in reader.pages:
-        text += page.extract_text()
+        text += page.extract_text() or ""
     return text
 
 @st.cache_data
@@ -67,20 +68,20 @@ if not st.session_state['auth']:
 # 4. MAIN APP CONTENT
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
 
-# --- NANO NAVIGATION (Restored Links) ---
+# --- NANO NAVIGATION ---
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.markdown('<div class="nano-tile"><div class="nano-label">Salesforce</div></div>', unsafe_allow_html=True)
-    st.link_button("🚀 CRM", "https://arrowcrm.lightning.force.com/", use_container_width=True)
+    st.link_button("🚀 CRM", "[https://arrowcrm.lightning.force.com/](https://arrowcrm.lightning.force.com/)", use_container_width=True)
 with col2:
     st.markdown('<div class="nano-tile"><div class="nano-label">SWB Oracle</div></div>', unsafe_allow_html=True)
-    st.link_button("💾 Orders", "https://acswb.arrow.com/Swb/", use_container_width=True)
+    st.link_button("💾 Orders", "[https://acswb.arrow.com/Swb/](https://acswb.arrow.com/Swb/)", use_container_width=True)
 with col3:
     st.markdown('<div class="nano-tile"><div class="nano-label">ETQ Portal</div></div>', unsafe_allow_html=True)
-    st.link_button("📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal", use_container_width=True)
+    st.link_button("📋 Forms", "[https://arrow.etq.com/prod/rel/#/app/system/portal](https://arrow.etq.com/prod/rel/#/app/system/portal)", use_container_width=True)
 with col4:
     st.markdown('<div class="nano-tile"><div class="nano-label">Support</div></div>', unsafe_allow_html=True)
-    st.link_button("🛠️ Tickets", "https://arrow.service-now.com/myconnect", use_container_width=True)
+    st.link_button("🛠️ Tickets", "[https://arrow.service-now.com/myconnect](https://arrow.service-now.com/myconnect)", use_container_width=True)
 with col5:
     st.markdown('<div class="nano-tile"><div class="nano-label">SOS Help</div></div>', unsafe_allow_html=True)
     st.link_button("🆘 Contact", "mailto:yahya.ouarach@arrow.com", use_container_width=True)
@@ -90,33 +91,39 @@ st.divider()
 # --- ADMIN SIDEBAR ---
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI Upload"):
-    st.sidebar.info("Upload a PDF to automatically extract procedures into the search engine.")
+    st.sidebar.info("Upload a PDF to extract procedures into the database.")
     new_pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
     if new_pdf and st.sidebar.button("✨ Extract & Add"):
-        with st.spinner("AI is reading PDF and formatting data..."):
-            raw_text = extract_pdf_text(new_pdf)
-            # Refined prompt for better CSV results
-            prompt = f"""Extract all procedures from this text. 
-            Format exactly as CSV with NO HEADER. 
-            Columns: System, Process, Instructions, Rationale.
-            Text: {raw_text[:10000]}"""
-            
-            response = model.generate_content(prompt)
-            
-            try:
-                # Clean the response text (remove markdown if AI includes it)
-                cleaned_csv = response.text.replace('```csv', '').replace('```', '').strip()
-                new_rows = pd.read_csv(io.StringIO(cleaned_csv), names=["System", "Process", "Instructions", "Rationale"])
-                
-                # Merge and Save
-                updated_df = pd.concat([df, new_rows], ignore_index=True)
-                updated_df.to_csv("sop_data.csv", index=False)
-                
-                st.sidebar.success(f"Successfully added {len(new_rows)} rows!")
-                st.cache_data.clear()
-                st.rerun()
-            except Exception as e:
-                st.sidebar.error(f"Error parsing data: {e}")
+        if model is None:
+            st.error("AI Model not initialized. Check your API key.")
+        else:
+            with st.spinner("AI is reading PDF and formatting data..."):
+                try:
+                    raw_text = extract_pdf_text(new_pdf)
+                    
+                    # Refined prompt for clean CSV output
+                    prompt = f"""Extract all procedures from this text. 
+                    Output ONLY raw CSV rows. Do not include headers.
+                    Columns: System, Process, Instructions, Rationale.
+                    Text: {raw_text[:8000]}"""
+                    
+                    response = model.generate_content(prompt)
+                    
+                    # CLEANING: AI often wraps CSV in markdown blocks; we strip those.
+                    cleaned_csv = response.text.replace('```csv', '').replace('```', '').strip()
+                    
+                    # PARSING
+                    new_rows = pd.read_csv(io.StringIO(cleaned_csv), names=["System", "Process", "Instructions", "Rationale"])
+                    
+                    # MERGING & SAVING
+                    updated_df = pd.concat([df, new_rows], ignore_index=True)
+                    updated_df.to_csv("sop_data.csv", index=False)
+                    
+                    st.sidebar.success(f"Successfully added {len(new_rows)} rows!")
+                    st.cache_data.clear()
+                    st.rerun()
+                except Exception as e:
+                    st.sidebar.error(f"Error processing data: {e}")
 
 # --- SEARCH ENGINE ---
 query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="Search 'Verification', 'Price Release'...")
@@ -129,9 +136,9 @@ if query:
             st.caption(f"**Rationale:** {row['Rationale']}")
             st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
             
-            # THE RESTORED REPORT ISSUE BUTTON
+            # REPORT ISSUE BUTTON
             subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
-            body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}\n\nPlease update.")
+            body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
             mailto_link = f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}"
             
             st.link_button("🚩 Report Issue", mailto_link)
