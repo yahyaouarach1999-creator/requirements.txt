@@ -1,53 +1,52 @@
 import streamlit as st
 import pandas as pd
 
-# --- APP CONFIG ---
-st.set_page_config(page_title="Arledge Ops Knowledge Base", layout="wide", page_icon="🏹")
+# --- CONFIG ---
+st.set_page_config(page_title="Arledge Ops Portal", layout="wide", page_icon="🏹")
 
-# --- CUSTOM CSS ---
+# --- STYLING ---
 st.markdown("""
     <style>
-        .main-header {
-            background-color: #1E293B; padding: 25px; color: white; text-align: center;
-            border-bottom: 5px solid #F97316; margin-bottom: 25px;
-        }
-        .instruction-box { 
-            white-space: pre-wrap; font-family: 'Consolas', monospace; 
-            line-height: 1.6; color: #1E293B; background: #F1F5F9; 
-            padding: 20px; border-left: 5px solid #F97316; border-radius: 4px;
-        }
-        .collector-card {
-            background-color: #FFF7ED; border: 1px solid #FDBA74;
-            padding: 15px; border-radius: 8px; color: #7C2D12; margin-bottom: 15px;
-        }
+        .main-header { background-color: #1E293B; padding: 20px; color: white; text-align: center; border-bottom: 5px solid #F97316; }
+        .card { background-color: #F1F5F9; padding: 20px; border-radius: 10px; border-top: 4px solid #F97316; text-align: center; }
+        .instruction-box { white-space: pre-wrap; font-family: monospace; background: #F8FAFC; padding: 15px; border-left: 5px solid #F97316; }
+        .footer { position: fixed; bottom: 10px; right: 10px; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>🏹 ARLEDGE <span style="color:#F97316">OPERATIONS</span></h1></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>🏹 ARLEDGE OPERATIONS PORTAL</h1></div>', unsafe_allow_html=True)
+st.write("---")
 
-# --- LOAD DATA ---
+# --- HOME CARDS (Salesforce & SWB) ---
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown('<div class="card"><h3>🚀 Salesforce</h3><p>Manage Cases & Leads</p></div>', unsafe_allow_html=True)
+    st.link_button("Open Salesforce", "https://arrowcrm.lightning.force.com/", use_container_width=True)
+with col2:
+    st.markdown('<div class="card"><h3>💾 SWB (Oracle)</h3><p>Orders & Shipments</p></div>', unsafe_allow_html=True)
+    st.link_button("Open SWB", "https://acswb.arrow.com/Swb/", use_container_width=True)
+with col3:
+    st.markdown('<div class="card"><h3>🛠️ MyConnect</h3><p>IT & ETQ Requests</p></div>', unsafe_allow_html=True)
+    st.link_button("Open MyConnect", "https://arrow.service-now.com/myconnect", use_container_width=True)
+
+st.write("---")
+
+# --- SEARCH ---
 @st.cache_data
 def load_data():
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
-
-# --- SEARCH ---
-query = st.text_input("🔍 Search Full Technical SOPs (e.g., 'V90', 'Reno', 'IT')", placeholder="Search the database...")
+query = st.text_input("🔍 Search Technical Procedures (V90, Dropship, Sure Ship...)", placeholder="Start typing...")
 
 if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
-    
-    if not results.empty:
-        for _, row in results.iterrows():
-            if row['System'] == 'Finance':
-                st.markdown(f'<div class="collector-card"><b>{row["Process"]}</b><br>{row["Instructions"]}</div>', unsafe_allow_html=True)
-            else:
-                with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
-                    st.write(f"**Application Context:** {row['Rationale']}")
-                    st.write("**Full Procedure / Template:**")
-                    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-    else:
-        st.warning("No matching procedures found in the database.")
-else:
-    st.info("The knowledge base is fully updated with the SOP 7 document. Enter a keyword above.")
+    for _, row in results.iterrows():
+        with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
+            st.markdown(f"**Scenario:** {row['Rationale']}")
+            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+
+# --- CONTACT SOS BUTTON ---
+st.markdown('<div class="footer">', unsafe_allow_html=True)
+st.link_button("🆘 Contact SOS Team", "mailto:yahya.ouarach@arrow.com?subject=SOS Assistance Request")
+st.markdown('</div>', unsafe_allow_html=True)
