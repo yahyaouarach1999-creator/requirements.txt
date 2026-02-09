@@ -65,19 +65,23 @@ st.markdown(f"""
 st.markdown('<div class="hero-banner"><h1>Training & Process Repository</h1><p>Search modules below or use the top nav to launch systems.</p></div>', unsafe_allow_html=True)
 
 # Functional Search
-query = st.text_input("", placeholder="Search by Module, System, or Process...", label_visibility="collapsed").strip()
+query = st.text_input("", placeholder="Search by Module, System, Collector Letter, or Warehouse Code...", label_visibility="collapsed").strip()
 
 # --- 5. DATA LOADING & DISPLAY ---
 @st.cache_data
 def load_data():
     try:
-        return pd.read_csv("sop_data.csv").fillna("")
-    except:
-        return pd.DataFrame(columns=["System", "Process", "Instructions", "Screenshot_URL", "Email_Template"])
+        # Load CSV and ensure all necessary columns exist
+        df = pd.read_csv("sop_data.csv").fillna("")
+        return df
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Training_Link", "Screenshot_URL", "Email_Template"])
 
 df = load_data()
 
 if query:
+    # Improved Search: Looks through System, Process, and Instructions
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
@@ -87,19 +91,31 @@ if query:
                 c1, c2 = st.columns([0.6, 0.4])
                 with c1:
                     st.markdown("### 📋 Instructions")
-                    st.write(row['Instructions'].replace("<br>", "\n"))
+                    # Renders <br> as actual new lines in the app
+                    st.markdown(row['Instructions'], unsafe_allow_html=True)
                     
-                    # Contextual Buttons based on the System
+                    st.markdown("---")
+                    
+                    # NEW: Start Rise 360 Lesson Button
+                    if row.get('Training_Link') and row['Training_Link'] != "":
+                        st.link_button("🚀 Start Rise 360 Lesson", row['Training_Link'], use_container_width=True)
+                    
+                    # Contextual Buttons for Live Systems
                     if "Salesforce" in row['System']:
-                        st.link_button("Go to Salesforce Cases", LINKS['Salesforce'])
-                    elif "Oracle" in row['System'] or "AC" in row['System']:
-                        st.link_button("Launch SWB Oracle", LINKS['SWB (Oracle)'])
+                        st.link_button("Go to Live Salesforce Cases", LINKS['Salesforce'])
+                    elif any(x in row['System'] for x in ["Oracle", "SWB", "Finance"]):
+                        st.link_button("Launch Live SWB Oracle", LINKS['SWB (Oracle)'])
                 
                 with c2:
-                    if row['Screenshot_URL']:
-                        st.image(row['Screenshot_URL'], use_container_width=True)
+                    if row.get('Screenshot_URL') and row['Screenshot_URL'] != "":
+                        st.image(row['Screenshot_URL'], caption="Process Visual Reference", use_container_width=True)
+                    
+                    # NEW: Email Template Section
+                    if row.get('Email_Template') and row['Email_Template'] != "":
+                        st.info("📧 **Email Template Available**")
+                        st.code(row['Email_Template'], language="text")
     else:
-        st.warning("No matches found.")
+        st.warning(f"No matches found for '{query}'. Try searching for a specific collector name or warehouse code.")
 else:
     # Default View
-    st.info("👋 Select a system from the top menu or start typing in the search box to begin your training.")
+    st.info("👋 Select a system from the top menu or start typing in the search box to find contacts, training, and processes.")
