@@ -3,9 +3,9 @@ import pandas as pd
 import re
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="Arledge  Center", layout="wide", page_icon="🏹")
+st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# --- CUSTOM CSS ---
+# --- CSS FOR BUTTONS & UI ---
 st.markdown("""
     <style>
         .main-header { background-color: #0F172A; padding: 10px; color: white; text-align: center; border-bottom: 3px solid #F97316; margin-bottom: 15px; }
@@ -16,6 +16,8 @@ st.markdown("""
         .nano-tile:hover { border-color: #F97316; background-color: #F1F5F9; transform: translateY(-1px); }
         .nano-label { font-size: 0.6rem; font-weight: 900; color: #64748B; text-transform: uppercase; margin-bottom: 2px; }
         .instruction-box { white-space: pre-wrap; font-family: 'Consolas', monospace; font-size: 0.85rem; background: #1E293B; color: #F8FAFC; padding: 15px; border-left: 5px solid #F97316; border-radius: 4px; }
+        /* Style the Report Button specifically */
+        .stButton>button { border-radius: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -38,7 +40,7 @@ if not st.session_state['authenticated']:
                 st.error("Access Denied: @arrow.com domain only.")
     st.stop()
 
-# --- CONTENT ---
+# --- APP CONTENT ---
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
 
 # --- NANO NAVIGATION ---
@@ -61,9 +63,10 @@ with col5:
 
 st.divider()
 
-# --- SEARCH ENGINE ---
+# --- SEARCH ENGINE & ERROR REPORTING ---
 @st.cache_data
 def load_data():
+    # Ensure your csv file is named exactly 'sop_data.csv'
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
@@ -73,10 +76,15 @@ if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
     if not results.empty:
         for index, row in results.iterrows():
-            with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
+            # Creating a unique container for each result
+            with st.container():
+                st.markdown(f"### 📌 {row['System']} | {row['Process']}")
                 st.caption(f"**Rationale:** {row['Rationale']}")
                 st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-                if st.button(f"🚩 Report Inaccuracy", key=f"report_{index}"):
-                    st.toast(f"Report logged for {row['Process']}. Please email details to Yahya.")
+                
+                # FIX: Using a unique key for every button so they all show up
+                if st.button(f"🚩 Report Error in {row['Process']}", key=f"btn_{index}"):
+                    st.warning(f"Error flagged for: {row['Process']}. Please notify the admin.")
+                st.markdown("---")
     else:
         st.warning("No matches found.")
