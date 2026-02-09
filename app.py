@@ -10,11 +10,12 @@ import io
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --- AI CONFIGURATION ---
-# Use st.secrets for GitHub safety, or keep your key here if strictly local
 try:
     API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII" 
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    # CHANGED: Added "models/" prefix for better compatibility
+    model = genai.GenerativeModel('models/gemini-1.5-flash') 
 except Exception:
     model = None
 
