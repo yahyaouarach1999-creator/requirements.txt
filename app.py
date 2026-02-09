@@ -88,3 +88,13 @@ if query:
             st.markdown("---")
     else:
         st.warning("No matches found.")
+import urllib.parse
+
+# Inside your search results loop:
+subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
+body = urllib.parse.quote(f"User reporting issue with {row['Process']}.\nInstructions found: {row['Instructions']}")
+mailto_link = f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}"
+
+if st.button("🚩 Report Issue", key=f"issue_{index}"):
+    # This creates a link the user clicks to open Outlook/Email
+    st.markdown(f'<a href="{mailto_link}" target="_blank">Click here to send email report</a>', unsafe_allow_html=True)
