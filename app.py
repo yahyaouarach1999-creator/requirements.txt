@@ -19,14 +19,20 @@ st.markdown(f"""
         /* Header Styling */
         .main-header {{
             background-color: #1E293B;
-            padding: 30px;
+            padding: 25px;
             color: white;
             text-align: center;
             border-bottom: 4px solid #F97316;
             margin-bottom: 20px;
         }}
-        .main-header h1 {{ margin-bottom: 5px; font-weight: 800; }}
-        /* Footer Styling */
+        .main-header h1 {{ margin: 0; font-weight: 800; }}
+        /* Expander Styling */
+        .stExpander {{
+            border: 1px solid #E2E8F0 !important;
+            border-radius: 8px !important;
+            margin-bottom: 10px !important;
+        }}
+        /* Small Footer SOS */
         .footer {{
             position: fixed;
             left: 0;
@@ -40,21 +46,12 @@ st.markdown(f"""
             border-top: 1px solid #E2E8F0;
             z-index: 100;
         }}
-        /* Process Card Styling */
-        .process-card {{
-            border-left: 5px solid #F97316;
-            background-color: #FBFCFE;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. TOP NAVIGATION & HEADER ---
-st.markdown('<div class="main-header"><h1>🏹 ARLEDGE <span style="color:#F97316">LEARNING</span></h1><p>Search modules below or use the top nav to launch systems.</p></div>', unsafe_allow_html=True)
+# --- 4. TOP NAVIGATION ---
+st.markdown('<div class="main-header"><h1>🏹 ARLEDGE <span style="color:#F97316">LEARNING</span></h1></div>', unsafe_allow_html=True)
 
-# Direct System Launch Buttons
 nav_col1, nav_col2, nav_col3 = st.columns(3)
 with nav_col1:
     st.link_button("🚀 Salesforce", LINKS['Salesforce'], use_container_width=True)
@@ -79,29 +76,26 @@ def load_data():
 df = load_data()
 
 # --- 6. SEARCH INTERFACE ---
-query = st.text_input("🔍 Search Knowledge Base", placeholder="Enter process name, system, or alpha letter...")
+query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a process, system, or alpha letter...")
 
-# --- 7. DISPLAY LOGIC ---
+# --- 7. INTERACTIVE DISPLAY (Clickable Titles) ---
 if query and not df.empty:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
     if not results.empty:
         for _, row in results.iterrows():
-            with st.container():
-                st.markdown(f"""<div class="process-card">
-                    <h3>📌 {row.get('Process', 'Module')}</h3>
-                    <p>{row.get('Instructions', '')}</p>
-                </div>""", unsafe_allow_html=True)
-                
-                # Check for specific link if provided in CSV
+            # Big Title that reveals info when clicked
+            with st.expander(f"📌 {row.get('Process', 'Module')}", expanded=False):
+                st.markdown(row.get('Instructions', ''), unsafe_allow_html=True)
+                # If a link exists, it remains accessible only inside the expanded area
                 proc_link = str(row.get('Training_Link', '')).strip()
                 if proc_link.startswith("http"):
-                    st.link_button("🔗 View Resource", proc_link)
+                    st.markdown(f"[Click here for additional resource]({proc_link})")
     else:
-        st.info("No matching results found.")
+        st.info("No matching modules found.")
 else:
-    st.caption("Start typing above to find contacts and processes.")
+    st.caption("Enter search terms above to view contacts and process details.")
 
 # --- 8. SOS FOOTER ---
 st.markdown(f"""
