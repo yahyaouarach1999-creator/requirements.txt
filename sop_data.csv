@@ -1,12 +1,12 @@
 System,Process,Instructions,Rationale,Last_Updated
-Finance,Collector: Alexis Flores,"**Alpha**: A, B, T, W, C, H<br>**Email**: alexis.flores@arrow.com","Primary collector for Group A-H.",2026-02-09
-Finance,Collector: Iliana Robles,"**Alpha**: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z<br>**Email**: iliana.robles@arrow.com","Handles special chars and secondary alpha groups.",2026-02-09
-Finance,Collector: Valeria Sanchez,"**Alpha**: L, P, M, N, O, R/G<br>**Email**: valeria.sanchez@arrow.com","Handles Group L-O and G/R.",2026-02-09
-SOP 7,Sure Ship Domestic (Warehouse VXX),"1. Go to ETQ Portal > eRequests.<br>2. Select Warehouse Requests > Sure Ship Domestic.<br>3. Enter Sales Order and select Host AC Prod.","Use for Reno warehouse if delivery is stuck for 2+ days.",2026-02-09
-SOP 7,Receiving Expedite (Reno),"1. Use ETQ portal > eRequests.<br>2. Select Receiving Expedite – Draft.<br>3. Provide Unity/Carrier info.","Use if items show delivered but are not received after 3 days.",2026-02-09
-SOP 7,Hong Kong Warehouse Expedite,"Email URGENTRECEIVING.HK@arrowasia.com with PO/SO and Tracking info.","For HK items in 'Awaiting Receipt' for 3+ days.",2026-02-09
-SOP 7,Cancellation Request,"1. Check Unity Leg1 for tracking.<br>2. If no tracking: Open Salesforce case.<br>3. For Supplier orders: Email vendor contact.","Verify tracking before attempting cancellation.",2026-02-09
-SOP 7,Venlo (EMEA) Logistics,"Sure Ship: ecommerce.dlc.emea@arrow.com<br>Receiving: business.support.pdc.emea@arrow.com.","Include PO# and Delivery ID in the subject.",2026-02-09
-SOP 7,Packing List & CoC (Reno),"Packing List: Use wms-prod.arrow.com/PAWMSReprints/<br>Non-Military CoC: arrow.tfaforms.net/4865283.","Specific links for Reno [VXX] warehouse.",2026-02-09
-Finance,Proof of Payment Submissions,"Forward proof to: vericalcia@arrow.com, wireremit@arrow.com. **Always include the account collector.**","Requires collector CC to process.",2026-02-09
-APAC Support,Asia Warehouse Contacts,"W/H A01/A63/B04: JEFF.KWOK@arrowasia.com<br>W/H A03: dongsheng.sun@arrowasia.com<br>W/H B05/D51/A47: JB.SHIPPING@arrowasia.com.","Key contacts for APAC logistics.",2026-02-09
+Finance,Collector: Alexis Flores,"**Alpha**: A, B, T, W, C, H<br>**Email**: alexis.flores@arrow.com","Primary Finance Contact for A-H.",2026-02-09
+Finance,Collector: Iliana Robles,"**Alpha**: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z<br>**Email**: iliana.robles@arrow.com","Handles Special Chars and Alpha Group I-Z.",2026-02-09
+Finance,Collector: Valeria Sanchez,"**Alpha**: L, P, M, N, O, R/G<br>**Email**: valeria.sanchez@arrow.com","Handles Middle Alpha and R/G.",2026-02-09
+SOP 7,Sure Ship Domestic (VXX),"1. ETQ Portal > eRequests.<br>2. Warehouse Requests > Sure Ship Domestic.<br>3. Enter SO # and select Host: AC Prod.","Use for Reno [VXX] if Delivery hasn't moved in 2 days.",2026-02-09
+SOP 7,Sure Ship International,"1. ETQ Portal > Warehouse Requests.<br>2. Select 'Sure Ship International'.<br>3. Provide Export details.","For global shipments delayed in warehouse processing.",2026-02-09
+SOP 7,Receiving Expedite (Reno),"1. ETQ > Warehouse Requests > Receiving Expedite.<br>2. Enter PO/Carrier/Tracking info.","Use if items show 'Delivered' but are not 'Received' after 3 days.",2026-02-09
+SOP 7,Hong Kong Warehouse Request,"Email URGENTRECEIVING.HK@arrowasia.com with PO/SO/Tracking.","For HK items stuck in 'Awaiting Receipt' status.",2026-02-09
+SOP 7,Venlo (EMEA) Requests,"Sure Ship: ecommerce.dlc.emea@arrow.com<br>Receiving: business.support.pdc.emea@arrow.com.","Include PO# and DID in subject line.",2026-02-09
+SOP 7,Cancellation Process,"1. Check Unity Leg1 for tracking.<br>2. If tracking exists: Cancellation not possible.<br>3. If no tracking: Open Salesforce case.","Always verify tracking before attempting to cancel.",2026-02-09
+SOP 7,CoC/Packing List (Reno),"Packing List: wms-prod.arrow.com/PAWMSReprints/<br>Non-Military CoC: arrow.tfaforms.net/4865283.","Direct links for Reno warehouse requests.",2026-02-09
+SOP 7,Supplier Order Status,"1. Check Unity 'Alerts' tab.<br>2. If PO is 'Awaiting Receipt' > Check Leg 1 tracking.<br>3. If no tracking > Contact Vendor.","Reduces redundant tasks to the purchasing team.",2026-02-09
