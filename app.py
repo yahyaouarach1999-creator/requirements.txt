@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import webbrowser
 
 # --- 1. CONFIG & SETTINGS ---
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
@@ -9,111 +8,95 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 LINKS = {
     "Salesforce": "https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder",
     "SWB (Oracle)": "https://acswb.arrow.com/Swb/",
-    "MyConnect": "https://arrow.service-now.com/myconnect?id=myconnect_home",
-    "Help_Email": "wireremit@arrow.com"
+    "MyConnect": "https://arrow.service-now.com/myconnect?id=myconnect_home"
 }
 
-# --- 3. CUSTOM STYLING (Modern UI) ---
+# --- 3. CUSTOM STYLING ---
 st.markdown(f"""
     <style>
-        .stApp {{ background-color: #F1F5F9; }}
+        .stApp {{ background-color: #F8FAFC; }}
         .main-header {{
-            background: linear-gradient(90deg, #1E293B 0%, #334155 100%);
-            padding: 20px;
-            border-radius: 10px;
+            background: #1E293B;
+            padding: 25px;
+            border-radius: 12px;
             color: white;
             text-align: center;
-            margin-bottom: 25px;
             border-bottom: 5px solid #F97316;
+            margin-bottom: 20px;
         }}
-        .topic-card {{
+        .card {{
             background: white;
             padding: 20px;
-            border-radius: 12px;
-            border-left: 5px solid #F97316;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            transition: transform 0.2s;
-            height: 100%;
-        }}
-        .topic-card:hover {{ transform: translateY(-5px); }}
-        .email-box {{
-            background: #FFF7ED;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px dashed #F97316;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #E2E8F0;
         }}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. TOP NAVIGATION & HELP ---
-st.markdown('<div class="main-header"><h1>🏹 Arledge Command Center</h1><p>Global Process Repository & Support Hub</p></div>', unsafe_allow_html=True)
+# --- 4. HEADER ---
+st.markdown('<div class="main-header"><h1>🏹 Arledge Command Center</h1><p>Training & Global Support Hub</p></div>', unsafe_allow_html=True)
 
-col_search, col_help = st.columns([0.7, 0.3])
-
-with col_search:
-    query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a system, warehouse code, or collector name...")
-
-with col_help:
-    st.markdown("""
-        <div class="email-box">
-            <strong>🆘 Need Help?</strong><br>
-            <small>Email proof of payment or queries to:</small><br>
-            <a href="mailto:wireremit@arrow.com?subject=Support Request" style="color:#F97316; font-weight:bold;">Contact Finance Team</a>
-        </div>
-    """, unsafe_allow_html=True)
-
-# --- 5. DATA LOADING ---
+# --- 5. DATA LOADING (The Link Fix) ---
 @st.cache_data
 def load_data():
     try:
-        return pd.read_csv("sop_data.csv").fillna("")
+        df = pd.read_csv("sop_data.csv")
+        # CRITICAL FIX: Strip hidden spaces from ALL columns to prevent 404 errors
+        df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+        return df.fillna("")
     except:
         return pd.DataFrame(columns=["System", "Process", "Instructions", "Training_Link", "Screenshot_URL"])
 
 df = load_data()
 
-# --- 6. INTERACTIVE TOPIC CARDS (Home Screen) ---
-if not query:
-    st.subheader("📂 Browse by Topic")
-    systems = df['System'].unique()
-    cols = st.columns(3)
-    
-    for i, system in enumerate(systems):
-        with cols[i % 3]:
-            st.markdown(f"""
-                <div class="topic-card">
-                    <h3>{system}</h3>
-                    <p>Standard operating procedures and training for {system} systems.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"View {system} Docs", key=system):
-                query = system
+# --- 6. SEARCH & HELP ---
+c1, c2 = st.columns([0.7, 0.3])
+with c1:
+    query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a system, collector, or process...")
+with c2:
+    st.info("📬 **Need Help?**\n[Email wireremit@arrow.com](mailto:wireremit@arrow.com)")
 
-# --- 7. SEARCH RESULTS ---
+# --- 7. TOPIC CARDS (Interactive View) ---
+if not query:
+    st.subheader("📂 Browse by System")
+    systems = df['System'].unique()
+    cols = st.columns(len(systems) if len(systems) < 5 else 4)
+    for i, sys_name in enumerate(systems):
+        with cols[i % len(cols)]:
+            if st.button(sys_name, use_container_width=True):
+                query = sys_name
+
+# --- 8. RESULTS ---
 if query:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
     if not results.empty:
-        for idx, row in results.iterrows():
+        for _, row in results.iterrows():
             with st.container():
-                st.markdown("---")
-                c1, c2 = st.columns([0.6, 0.4])
-                with c1:
-                    st.success(f"**{row['System']}**: {row['Process']}")
+                st.markdown(f"### 📌 {row['Process']}")
+                col_text, col_img = st.columns([0.6, 0.4])
+                
+                with col_text:
                     st.markdown(row['Instructions'], unsafe_allow_html=True)
                     
-                    # Action Row
-                    btn_col1, btn_col2 = st.columns(2)
-                    with btn_col1:
+                    # ACTION BUTTONS
+                    st.markdown("---")
+                    btn1, btn2 = st.columns(2)
+                    with btn1:
+                        # Fixed URL handling: Ensuring we pass a clean string
                         if row['Training_Link']:
-                            st.link_button("🚀 Start Training", row['Training_Link'], use_container_width=True)
-                    with btn_col2:
+                            st.link_button("🚀 Start Rise 360 Lesson", row['Training_Link'].strip(), type="primary")
+                    with btn2:
                         if "Salesforce" in row['System']:
-                            st.link_button("Open Salesforce", LINKS['Salesforce'], use_container_width=True)
+                            st.link_button("Open Live Salesforce", LINKS['Salesforce'])
+                        elif "Oracle" in row['System']:
+                            st.link_button("Open Live SWB", LINKS['SWB (Oracle)'])
                 
-                with c2:
+                with col_img:
                     if row['Screenshot_URL']:
                         st.image(row['Screenshot_URL'], use_container_width=True)
+                st.markdown("---")
     else:
-        st.warning("No specific SOP found. Try a different keyword.")
+        st.warning(f"No results for '{query}'.")
