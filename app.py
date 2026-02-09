@@ -1,4 +1,4 @@
-Import streamlit as st
+import streamlit as st
 import pandas as pd
 import re
 import io
@@ -21,6 +21,7 @@ st.set_page_config(
 @st.cache_resource
 def init_model():
     try:
+        # Note: Ensure GEMINI_API_KEY is set in your Streamlit Secrets
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         return genai.GenerativeModel("models/gemini-1.5-flash")
     except Exception:
@@ -45,26 +46,9 @@ def extract_pdf_text(file_bytes):
     reader = PdfReader(io.BytesIO(file_bytes))
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 
-def validate_rows(df):
+def validate_rows(check_df):
     required = {"System", "Process", "Instructions", "Rationale"}
-    return required.issubset(df.columns) and not df.empty
-
-def search_df(df, query):
-    mask = (
-        df["System"].str.contains(query, case=False) |
-        df["Process"].str.contains(query, case=False) |
-        df["Instructions"].str.contains(query, case=False) |
-        df["Rationale"].str.contains(query, case=False)
-    )
-    return df[mask]
-
-def highlight(text, query):
-    return re.sub(
-        f"({re.escape(query)})",
-        r"<mark>\1</mark>",
-        text,
-        flags=re.IGNORECASE
-    )
+    return required.issubset(check_df.columns) and not check_df.empty
 
 # =========================================================
 # 4. STYLES
@@ -110,7 +94,7 @@ mark {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 5. AUTH
+# 5. AUTHENTICATION
 # =========================================================
 if "auth" not in st.session_state:
     st.session_state.auth = False
@@ -127,31 +111,24 @@ if not st.session_state.auth:
     st.stop()
 
 # =========================================================
-# 6. HEADER
+# 6. APP CONTENT
 # =========================================================
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
 
-# =========================================================
-# 7. QUICK NAV
-# =========================================================
+# Quick Nav
 c1, c2, c3, c4, c5 = st.columns(5)
-
 with c1:
     st.markdown('<div class="nano-tile"><div class="nano-label">Salesforce</div></div>', unsafe_allow_html=True)
     st.link_button("🚀 CRM", "https://arrowcrm.lightning.force.com/", use_container_width=True)
-
 with c2:
     st.markdown('<div class="nano-tile"><div class="nano-label">SWB Oracle</div></div>', unsafe_allow_html=True)
     st.link_button("💾 Orders", "https://acswb.arrow.com/Swb/", use_container_width=True)
-
 with c3:
     st.markdown('<div class="nano-tile"><div class="nano-label">ETQ Portal</div></div>', unsafe_allow_html=True)
     st.link_button("📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal", use_container_width=True)
-
 with c4:
     st.markdown('<div class="nano-tile"><div class="nano-label">ServiceNow</div></div>', unsafe_allow_html=True)
     st.link_button("🛠️ Tickets", "https://arrow.service-now.com/myconnect", use_container_width=True)
-
 with c5:
     st.markdown('<div class="nano-tile"><div class="nano-label">SOS Help</div></div>', unsafe_allow_html=True)
     st.link_button("🆘 Contact", "mailto:yahya.ouarach@arrow.com", use_container_width=True)
@@ -159,48 +136,74 @@ with c5:
 st.divider()
 
 # =========================================================
-# 8. ADMIN SIDEBAR
+# 7. ADMIN SIDEBAR (The Factory)
 # =========================================================
 df = load_data()
 
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI Upload"):
     st.sidebar.info("Upload SOP PDF → AI extracts procedures")
-    pdf = st.sidebar.file_uploader("Upload PDF", type="pdf")
+    pdf_file = st.sidebar.file_uploader("Upload PDF", type="pdf")
 
-    if pdf and st.sidebar.button("✨ Extract & Preview"):
+    if pdf_file and st.sidebar.button("✨ Extract & Preview"):
         if model is None:
-            st.sidebar.error("AI not initialized.")
+            st.sidebar.error("AI not initialized. Check Secrets.")
         else:
-            with st.spinner("Reading SOP..."):
-                raw_text = extract_pdf_text(pdf.getvalue())
-                prompt = f"""
-Extract SOP procedures.
-
-Rules:
-- Output ONLY CSV rows
-- NO markdown
-- 4 columns exactly:
-System, Process, Instructions, Rationale
-
-TEXT:
-{raw_text[:8000]}
-"""
+            with st.spinner("AI Reading..."):
+                raw_text = extract_pdf_text(pdf_file.getvalue())
+                prompt = f"Extract procedures. Output ONLY CSV rows. Columns: System, Process, Instructions, Rationale. Text: {raw_text[:8000]}"
+                
                 response = model.generate_content(prompt)
-                cleaned = response.text.replace("```", "").strip()
-
-                preview_df = pd.read_csv(
-                    io.StringIO(cleaned),
-                    names=["System", "Process", "Instructions", "Rationale"],
-                    on_bad_lines="skip"
-                )
-
-                if validate_rows(preview_df):
-                    st.sidebar.success(f"Extracted {len(preview_df)} rows")
-                    st.session_state.preview_df = preview_df
-                else:
-                    st.sidebar.error("Extraction failed")
+                cleaned = response.text.replace("```csv", "").replace("```", "").strip()
+                
+                try:
+                    preview_df = pd.read_csv(
+                        io.StringIO(cleaned),
+                        names=["System", "Process", "Instructions", "Rationale"],
+                        on_bad_lines='skip'
+                    )
+                    if validate_rows(preview_df):
+                        st.session_state.preview_df = preview_df
+                        st.sidebar.success(f"Found {len(preview_df)} items.")
+                    else:
+                        st.sidebar.error("Invalid format extracted.")
+                except Exception as e:
+                    st.sidebar.error(f"Error: {e}")
 
     if "preview_df" in st.session_state:
+        st.sidebar.write("### Preview Data")
+        st.sidebar.dataframe(st.session_state.preview_df, hide_index=True)
         if st.sidebar.button("✅ Save to Database"):
-            final_df = pd.concat([df, st.session
+            updated_df = pd.concat([df, st.session_state.preview_df], ignore_index=True)
+            updated_df.to_csv("sop_data.csv", index=False)
+            del st.session_state.preview_df
+            st.cache_data.clear()
+            st.sidebar.success("Database Saved!")
+            st.rerun()
+
+# =========================================================
+# 8. SEARCH ENGINE (SQL Style)
+# =========================================================
+query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="e.g., 'V72', 'Price Release'")
+
+if query:
+    mask = (
+        df["System"].str.contains(query, case=False) |
+        df["Process"].str.contains(query, case=False) |
+        df["Instructions"].str.contains(query, case=False) |
+        df["Rationale"].str.contains(query, case=False)
+    )
+    results = df[mask]
+    
+    if not results.empty:
+        for _, row in results.iterrows():
+            with st.expander(f"📌 {row['System']} | {row['Process']}"):
+                st.info(f"**Rationale:** {row['Rationale']}")
+                st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                
+                # Report Issue Button
+                subject = urllib.parse.quote(f"Issue with {row['Process']}")
+                mailto = f"mailto:yahya.ouarach@arrow.com?subject={subject}"
+                st.link_button("🚩 Report Issue", mailto)
+    else:
+        st.warning("No matches found.")
