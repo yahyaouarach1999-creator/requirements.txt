@@ -126,4 +126,21 @@ if st.sidebar.checkbox("🚀 Smart PDF Upload"):
                     st.sidebar.error("Extraction failed. Try a cleaner PDF.")
 
 # --- SEARCH ENGINE ---
-query = st.text_input("🔍 Search Combined Technical
+query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="Search 'Verification', 'Price Release'...")
+
+if query:
+    results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
+    if not results.empty:
+        for index, row in results.iterrows():
+            st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+            st.caption(f"**Rationale:** {row['Rationale']}")
+            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            
+            if st.button("🚩 Report Issue", key=f"issue_{index}"):
+                subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
+                body = urllib.parse.quote(f"Issue with:\nSystem: {row['System']}\nProcess: {row['Process']}")
+                mailto_link = f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}"
+                st.markdown(f'📧 [**Send Email Report**]({mailto_link})')
+            st.markdown("---")
+    else:
+        st.warning("No matches found.")
