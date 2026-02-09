@@ -5,7 +5,7 @@ import re
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS FOR ONE-LINE NANO TILES & LOGIN ---
 st.markdown("""
     <style>
         .main-header { background-color: #0F172A; padding: 10px; color: white; text-align: center; border-bottom: 3px solid #F97316; margin-bottom: 15px; }
@@ -19,34 +19,29 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIN LOGIC ---
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
+# --- LOGIN GATE ---
+if 'auth' not in st.session_state:
+    st.session_state['auth'] = False
 
-def check_email(email):
-    # Regex to ensure the email ends exactly with @arrow.com
+def validate_arrow_email(email):
     return bool(re.match(r"^[a-zA-Z0-9._%+-]+@arrow\.com$", email))
 
-if not st.session_state['authenticated']:
+if not st.session_state['auth']:
     st.markdown('<div class="main-header"><h4>🔒 RESTRICTED ACCESS: ARROW EMPLOYEES ONLY</h4></div>', unsafe_allow_html=True)
-    
-    with st.form("login_form"):
-        user_email = st.text_input("Enter your @arrow.com email to continue:")
-        submit_button = st.form_submit_button("Verify Access")
-        
-        if submit_button:
-            if check_email(user_email):
-                st.session_state['authenticated'] = True
-                st.success("Access Granted!")
+    with st.container():
+        email_input = st.text_input("Enter your @arrow.com email to unlock portal:", placeholder="username@arrow.com")
+        if st.button("Access Command Center"):
+            if validate_arrow_email(email_input):
+                st.session_state['auth'] = True
                 st.rerun()
             else:
-                st.error("Access Denied: You must use a valid @arrow.com address.")
-    st.stop() # Stops the rest of the app from running until authenticated
+                st.error("Access Denied: Please use your official @arrow.com email.")
+    st.stop()
 
-# --- APP CONTENT (ONLY RUNS IF AUTHENTICATED) ---
+# --- APP CONTENT (ONLY VISIBLE TO @ARROW.COM) ---
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
 
-# --- NAVIGATION TILES ---
+# --- COMPACT NAVIGATION ROW ---
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.markdown('<div class="nano-tile"><div class="nano-label">Salesforce</div></div>', unsafe_allow_html=True)
@@ -72,7 +67,7 @@ def load_data():
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
-query = st.text_input("🔍 Search 30+ Technical Procedures", placeholder="Search 'LOC Hold', 'CMF Verification'...")
+query = st.text_input("🔍 Search Technical Knowledge Base", placeholder="Search word-for-word procedures...")
 
 if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
