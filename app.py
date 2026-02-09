@@ -3,77 +3,92 @@ import pandas as pd
 import google.generativeai as genai
 from PyPDF2 import PdfReader
 import io
-import urllib.parse
-import re
 
-# --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
-
-# Fetch API Key from Streamlit Secrets (for GitHub Safety)
-try:
-    API_KEY = st.secrets["GEMINI_KEY"]
-    genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-except:
-    st.warning("Admin Note: API Key not found in Secrets. Smart Upload will be disabled.")
-    model = None
-
-# --- 2. HELPER FUNCTIONS ---
-def extract_pdf_text(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    return "".join([page.extract_text() for page in reader.pages])
-
+# --- 1. DATA LOADING ---
 @st.cache_data
 def load_data():
     try:
         return pd.read_csv("sop_data.csv").fillna("")
     except:
-        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale"])
+        # Create a blank file if it's missing to prevent errors
+        blank_df = pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale"])
+        blank_df.to_csv("sop_data.csv", index=False)
+        return blank_df
 
-# --- 3. AUTHENTICATION ---
-if 'auth' not in st.session_state:
-    st.session_state['auth'] = False
+# Define function to read PDF text
+def extract_pdf_text(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
 
-if not st.session_state['auth']:
-    st.title("🏹 Arledge Operations Portal")
-    user_email = st.text_input("Official Email (@arrow.com):")
-    if st.button("Access Portal"):
-        if "@arrow.com" in user_email.lower():
-            st.session_state['auth'] = True
-            st.rerun()
-        else:
-            st.error("Access Restricted.")
-    st.stop()
-
-# --- 4. MAIN INTERFACE ---
+# Load initial data
 df = load_data()
-st.markdown("### 🏹 ARLEDGE OPERATIONS COMMAND")
 
-# Admin Sidebar
-st.sidebar.title("⚙️ Admin Tools")
-if st.sidebar.checkbox("🚀 Smart AI Upload"):
+# --- 2. AI SETUP ---
+try:
+    API_KEY = st.secrets["GEMINI_KEY"]
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except:
+    model = None
+
+# --- 3. ADMIN SIDEBAR LOGIC ---
+st.sidebar.title("⚙️ Admin Settings")
+
+if st.sidebar.checkbox("🚀 Smart Admin Upload"):
     if model:
-        new_pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
-        if new_pdf and st.sidebar.button("✨ Extract & Append"):
-            with st.spinner("AI is reading and formatting..."):
-                raw_text = extract_pdf_text(new_pdf)
-                prompt = f"Format this text as CSV: System, Process, Instructions, Rationale. Text: {raw_text[:10000]}"
+        st.sidebar.subheader("AI PDF Trainer")
+        new_pdf = st.sidebar.file_uploader("Upload a PDF SOP", type="pdf")
+        
+        if new_pdf and st.sidebar.button("✨ Extract & Add to Database"):
+            with st.sidebar.status("AI is reading and formatting..."):
+                # A. Convert PDF to Text
+                pdf_text = extract_pdf_text(new_pdf)
+                
+                # B. Send to Gemini
+                prompt = f"""
+                Act as a technical writer. Extract procedures from the text below. 
+                Return ONLY valid CSV lines (no header, no markdown code blocks).
+                Columns: System, Process, Instructions, Rationale.
+                Text to process: {pdf_text[:10000]}
+                """
                 response = model.generate_content(prompt)
                 
-                new_rows = pd.read_csv(io.StringIO(response.text), names=["System", "Process", "Instructions", "Rationale"])
-                df = pd.concat([df, new_rows], ignore_index=True)
-                df.to_csv("sop_data.csv", index=False)
-                st.cache_data.clear()
-                st.sidebar.success("Successfully added!")
-                st.rerun()
+                # C. Convert AI response to Dataframe
+                try:
+                    # We wrap the text in a StringIO so pandas can read it like a file
+                    new_rows = pd.read_csv(
+                        io.StringIO(response.text), 
+                        names=["System", "Process", "Instructions", "Rationale"],
+                        header=None
+                    )
+                    
+                    # D. Update CSV File
+                    updated_df = pd.concat([df, new_rows], ignore_index=True)
+                    updated_df.to_csv("sop_data.csv", index=False)
+                    
+                    st.sidebar.success(f"Added {len(new_rows)} new procedures!")
+                    st.cache_data.clear() # Forces the search bar to see new data
+                    st.rerun()
+                except Exception as e:
+                    st.sidebar.error("AI output was messy. Try a cleaner PDF.")
     else:
-        st.sidebar.error("Set GEMINI_KEY in Secrets to use this.")
+        st.sidebar.error("⚠️ Gemini API Key missing in Secrets!")
 
-# --- 5. SEARCH ENGINE ---
-query = st.text_input("🔍 Search Procedures (e.g., 'Delink', 'Dropship', 'V72')")
+# --- 4. MAIN SEARCH ENGINE (Displaying your data) ---
+st.title("🏹 Arledge Operations Command")
+query = st.text_input("🔍 Search procedures...", placeholder="e.g. Price Release, V72, OMT")
+
 if query:
+    # Search across all columns
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
-    for _, row in results.iterrows():
-        with st.expander(f"📌 {row['System']} | {row['Process']}"):
-            st.info(f"**Rationale:** {row['Rationale']}")
-            st.markdown(f"**Instructions:**\n{row['Instructions']}")
+    
+    if not results.empty:
+        for idx, row in results.iterrows():
+            with st.expander(f"📌 {row['System']} | {row['Process']}"):
+                st.info(f"**Rationale:** {row['Rationale']}")
+                st.markdown(f"**Step-by-Step Instructions:**\n{row['Instructions']}")
+    else:
+        st.warning("No matches found in the database.")
