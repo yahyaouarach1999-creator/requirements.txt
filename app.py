@@ -7,7 +7,6 @@ import urllib.parse
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- 2. THE PERMANENT LOGO FIX (BASE64) ---
-# This is a tiny version of the Arrow logo embedded as raw data
 LOGO_SVG = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI0Y5NzMxNiIgZD0iTTEyIDJMMiA3bDEwIDUgMTAtNXYxMEgxMlYyMmw4LTUgNC01Vjd6Ii8+PC9zdmc+"
 
 st.markdown(f"""
@@ -15,8 +14,11 @@ st.markdown(f"""
         #MainMenu {{visibility: hidden;}}
         footer {{visibility: hidden;}}
         header {{visibility: hidden;}}
+        
+        /* Main Background */
         .stApp {{ background-color: #F8FAFC; }}
         
+        /* HEADER STYLING */
         .header-container {{
             display: flex;
             align-items: center;
@@ -25,7 +27,7 @@ st.markdown(f"""
             border-radius: 10px;
             border-bottom: 5px solid #F97316;
             margin-bottom: 20px;
-        }}
+        }
         .logo-box {{
             background: white;
             padding: 8px;
@@ -33,14 +35,36 @@ st.markdown(f"""
             display: flex;
             align-items: center;
             justify-content: center;
-        }}
+        }
         .title-text {{
-            color: white;
+            color: white !important;
             font-size: 40px;
             font-weight: 900;
             margin-left: 20px;
             letter-spacing: 2px;
-        }}
+        }
+
+        /* VISIBILITY FIX: Force dark text for inputs and search labels */
+        label, p, .stMarkdown, .stTextInput label {{
+            color: #1E293B !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Force search text to be black so it's visible while typing */
+        .stTextInput input {{
+            color: #000000 !important;
+            background-color: #FFFFFF !important;
+        }
+
+        /* Result Cards */
+        .result-card {{
+            background: white; 
+            padding: 15px; 
+            border-left: 5px solid #F97316; 
+            margin-bottom: 10px; 
+            border-radius: 5px; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        }
     </style>
     
     <div class="header-container">
@@ -69,6 +93,7 @@ if not st.session_state.authorized:
 @st.cache_data(ttl=1)
 def load_data():
     try:
+        # Changed to sop_data.csv to match Arledge logic
         df = pd.read_csv("sop_data.csv", encoding='utf-8-sig').fillna("")
         df.columns = df.columns.str.strip()
         return df
@@ -82,28 +107,32 @@ if 'view' not in st.session_state: st.session_state.view = 'home'
 if 'query' not in st.session_state: st.session_state.query = ""
 
 if st.session_state.view == 'home':
-    # Actionable UI
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     col1.metric("Indexed SOPs", len(df))
-    col2.metric("Platforms", len(df['System'].unique()))
+    col2.metric("Platforms", len(df['System'].unique()) if not df.empty else 0)
     
-    query = st.text_input("🔍 Search Database...", value=st.session_state.query).strip()
+    # Text input with forced visibility
+    query = st.text_input("🔍 Search Database...", value=st.session_state.query, placeholder="Type process name here...").strip()
     st.session_state.query = query
 
     if query:
         mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
         results = df[mask]
-        for idx, row in results.iterrows():
-            st.markdown(f"""
-            <div style="background:white; padding:12px; border-left:5px solid #F97316; margin-bottom:10px; border-radius:5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.05);">
-                <small style="color:#F97316; font-weight:bold;">{row['System']}</small>
-                <h4 style="margin:0;">{row['Process']}</h4>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"Open {row['Process']}", key=f"v_{idx}"):
-                st.session_state.selected = row
-                st.session_state.view = 'detail'
-                st.rerun()
+        
+        if results.empty:
+            st.warning("No results found.")
+        else:
+            for idx, row in results.iterrows():
+                st.markdown(f"""
+                <div class="result-card">
+                    <small style="color:#F97316; font-weight:bold;">{row['System']}</small>
+                    <h4 style="margin:0; color:#1E293B;">{row['Process']}</h4>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button(f"Open {row['Process']}", key=f"v_{idx}"):
+                    st.session_state.selected = row
+                    st.session_state.view = 'detail'
+                    st.rerun()
     else:
         st.write("### Ready. Type to search.")
 
@@ -120,8 +149,11 @@ elif st.session_state.view == 'detail':
         st.title(row['Process'])
         st.write(f"**Platform:** `{row['System']}`")
         st.markdown("### 📋 Steps")
-        for step in row['Instructions'].split('<br>'):
-            st.markdown(f"✅ {step}")
+        # Split by <br> or newline
+        steps = row['Instructions'].replace('<br>', '\n').split('\n')
+        for step in steps:
+            if step.strip():
+                st.markdown(f"✅ {step.strip()}")
             
         if row['Email_Template']:
             st.divider()
@@ -142,4 +174,4 @@ elif st.session_state.view == 'detail':
 
     with r:
         if row['Screenshot_URL']:
-            st.image(row['Screenshot_URL'])
+            st.image(row['Screenshot_URL'], caption="Process Visualization")
