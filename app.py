@@ -25,6 +25,11 @@ st.markdown(f"""
             background: #FFF7ED; padding: 15px; border-radius: 10px;
             border: 1px dashed #F97316; text-align: center;
         }}
+        .topic-card {{
+            background: white; padding: 15px; border-radius: 8px;
+            border-left: 5px solid #F97316; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            text-align: center; cursor: pointer;
+        }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -33,56 +38,70 @@ st.markdown('<div class="main-header"><h1>🏹 Arledge Command Center</h1><p>Glo
 
 col_search, col_help = st.columns([0.7, 0.3])
 with col_search:
-    query = st.text_input("🔍 Search Knowledge Base", placeholder="Search by name, system, or alpha letter...")
+    query = st.text_input("🔍 Search Knowledge Base", placeholder="Search by name, alpha letter (A, B, C...), or system...")
 
 with col_help:
-    st.markdown(f'<div class="email-card"><strong>🆘 Admin Support</strong><br><a href="mailto:{LINKS["Admin_Email"]}" style="color:#F97316;">{LINKS["Admin_Email"]}</a></div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="email-card">
+            <strong>🆘 Technical Support</strong><br>
+            <a href="mailto:{LINKS['Admin_Email']}?subject=Portal Help" style="color:#F97316; font-weight:bold;">{LINKS['Admin_Email']}</a>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- 5. DATA LOADING (KeyError Fix) ---
+# --- 5. DATA LOADING & CLEANING ---
 @st.cache_data
 def load_data():
     try:
         df = pd.read_csv("sop_data.csv")
-        # Clean white space and normalize column names
+        # Standardize columns and strip hidden spaces to fix 404/KeyErrors
         df.columns = df.columns.str.strip()
         df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
         return df.fillna("")
     except Exception as e:
-        st.error(f"Error loading CSV: {e}")
+        st.error(f"CSV Error: {e}")
         return pd.DataFrame()
 
 df = load_data()
 
-# --- 6. DISPLAY LOGIC ---
-if not df.empty and query:
-    # Search across all columns
+# --- 6. INTERACTIVE TOPICS ---
+if not query and not df.empty:
+    st.subheader("📂 Browse Categories")
+    systems = df['System'].unique()
+    cols = st.columns(len(systems) if len(systems) < 5 else 4)
+    for i, sys_name in enumerate(systems):
+        with cols[i % len(cols)]:
+            if st.button(sys_name, use_container_width=True):
+                query = sys_name
+
+# --- 7. SEARCH RESULTS ---
+if query and not df.empty:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
     
     if not results.empty:
         for _, row in results.iterrows():
             with st.container():
-                st.subheader(f"📌 {row.get('Process', 'Process Detail')}")
+                st.markdown(f"### 📌 {row.get('Process', 'Module')}")
                 c1, c2 = st.columns([0.6, 0.4])
-                
                 with c1:
-                    if 'Instructions' in row:
-                        st.markdown(row['Instructions'], unsafe_allow_html=True)
+                    st.markdown(row.get('Instructions', ''), unsafe_allow_html=True)
+                    st.markdown("---")
                     
-                    # Safe Link Handling
-                    t_link = str(row.get('Training_Link', '')).strip()
-                    if t_link and t_link.startswith('http'):
-                        st.link_button("🚀 Start Training", t_link, type="primary")
-                    
-                    if 'Email_Template' in row and row['Email_Template']:
-                        with st.expander("✉️ View Template"):
-                            st.code(row['Email_Template'], language="text")
-
+                    # Action Buttons
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        t_link = str(row.get('Training_Link', '')).strip()
+                        if t_link.startswith("http"):
+                            st.link_button("🚀 Start Training", t_link, type="primary", use_container_width=True)
+                    with b2:
+                        if "Salesforce" in row['System']:
+                            st.link_button("Open Salesforce", LINKS['Salesforce'], use_container_width=True)
+                        elif "Oracle" in row['System'] or "Finance" in row['System']:
+                            st.link_button("Open SWB Oracle", LINKS['SWB (Oracle)'], use_container_width=True)
+                
                 with c2:
-                    if 'Screenshot_URL' in row and row['Screenshot_URL']:
+                    if row.get('Screenshot_URL'):
                         st.image(row['Screenshot_URL'], use_container_width=True)
                 st.markdown("---")
     else:
-        st.warning("No matches found.")
-elif df.empty:
-    st.error("The CSV file is missing or empty. Please check `sop_data.csv`.")
+        st.warning(f"No results found for '{query}'.")
