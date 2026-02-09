@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 import re
-import urllib.parse  # <--- THIS WAS MISSING
+import urllib.parse
+import google.generativeai as genai
+from PyPDF2 import PdfReader
+import io
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
@@ -21,12 +24,37 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- AI CONFIGURATION ---
+# Replace with your key from https://aistudio.google.com/
+API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
+
+if API_KEY != "YOUR_GEMINI_API_KEY_HERE":
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-pro')
+else:
+    model = None
+
+# --- HELPER FUNCTIONS ---
+def check_email(email):
+    return bool(re.match(r"^[a-zA-Z0-9._%+-]+@arrow\.com$", email))
+
+@st.cache_data
+def load_data():
+    try:
+        return pd.read_csv("sop_data.csv").fillna("")
+    except FileNotFoundError:
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale"])
+
+def extract_pdf_text(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
+
 # --- AUTHENTICATION GATE ---
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
-
-def check_email(email):
-    return bool(re.match(r"^[a-zA-Z0-9._%+-]+@arrow\.com$", email))
 
 if not st.session_state['authenticated']:
     st.markdown('<div class="main-header"><h4>🔒 ARROW.COM ACCESS REQUIRED</h4></div>', unsafe_allow_html=True)
@@ -39,6 +67,9 @@ if not st.session_state['authenticated']:
             else:
                 st.error("Access Denied: @arrow.com domain only.")
     st.stop()
+
+# --- LOAD DATA ---
+df = load_data()
 
 # --- APP CONTENT ---
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
@@ -63,88 +94,36 @@ with col5:
 
 st.divider()
 
-# --- SEARCH ENGINE ---
-@st.cache_data
-def load_data():
-    return pd.read_csv("sop_data.csv").fillna("")
-
-df = load_data()
-query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="Search 'Verification', 'Price Release'...")
-
-if query:
-    results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
-    if not results.empty:
-        for index, row in results.iterrows():
-            st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-            st.caption(f"**Rationale:** {row['Rationale']}")
-            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-            
-            # --- THE VISIBLE REPORT ISSUE BUTTON ---
-            if st.button("🚩 Report Issue", key=f"issue_{index}"):
-                # Prepare email content
-                subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
-                body = urllib.parse.quote(f"I found an issue with the following procedure:\n\nSystem: {row['System']}\nProcess: {row['Process']}\n\nPlease update the data.")
-                mailto_link = f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}"
-                
-                # Show instructions to the user
-                st.warning("Please click the link below to send the report:")
-                st.markdown(f'📧 [**Send Email Report to Yahya**]({mailto_link})')
-            
-            st.markdown("---")
+# --- SIDEBAR ADMIN TOOLS ---
+st.sidebar.title("⚙️ Admin Settings")
+if st.sidebar.checkbox("🚀 Smart PDF Upload"):
+    st.sidebar.markdown("### Extract SOP from PDF")
+    if model is None:
+        st.sidebar.error("Please set your Gemini API Key in the code to use this feature.")
     else:
-        st.warning("No matches found.")
-        import google.generativeai as genai
-from PyPDF2 import PdfReader
-import io
-
-# --- CONFIG AI (Get your key at aistudio.google.com) ---
-API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel('gemini-pro')
-
-def extract_pdf_text(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    text = ""
-    for page in reader.pages:
-        text += page.extract_text()
-    return text
-
-# --- ADMIN SIDEBAR ---
-st.sidebar.divider()
-if st.sidebar.checkbox("🚀 Smart Admin Upload"):
-    st.header("Upload New SOP PDF")
-    st.info("The AI will read the PDF and automatically format it for your database.")
-    
-    new_pdf = st.file_uploader("Choose a PDF file", type="pdf")
-    
-    if new_pdf:
-        if st.button("✨ Extract & Add to Database"):
-            with st.spinner("AI is reading and organizing the document..."):
-                # 1. Read the PDF
+        new_pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
+        if new_pdf and st.sidebar.button("✨ Extract & Append"):
+            with st.spinner("AI analyzing document..."):
                 raw_text = extract_pdf_text(new_pdf)
-                
-                # 2. Ask AI to format it as CSV rows
                 prompt = f"""
                 Act as a technical writer. Extract procedures from the text below.
-                Format the output ONLY as CSV lines with no header. 
+                Output ONLY valid CSV lines (no header).
                 Columns: System, Process, Instructions, Rationale.
-                Keep instructions detailed (step-by-step).
-                Text: {raw_text[:8000]} 
+                Instructions should be step-by-step.
+                Text: {raw_text[:10000]}
                 """
-                
                 response = model.generate_content(prompt)
-                new_rows_text = response.text
                 
-                # 3. Convert AI response to Dataframe and Save
                 try:
-                    new_rows_io = io.StringIO(new_rows_text)
-                    new_df_rows = pd.read_csv(new_rows_io, names=["System", "Process", "Instructions", "Rationale"])
-                    
-                    # Merge and Save
-                    final_df = pd.concat([df, new_df_rows], ignore_index=True)
-                    final_df.to_csv("sop_data.csv", index=False)
-                    
-                    st.success(f"Added {len(new_df_rows)} new procedures!")
+                    new_rows_io = io.StringIO(response.text)
+                    new_df = pd.read_csv(new_rows_io, names=["System", "Process", "Instructions", "Rationale"])
+                    updated_df = pd.concat([df, new_df], ignore_index=True)
+                    updated_df.to_csv("sop_data.csv", index=False)
+                    st.sidebar.success(f"Added {len(new_df)} rows!")
+                    st.cache_data.clear()
                     st.rerun()
                 except Exception as e:
-                    st.error("The AI output wasn't perfect. Please try again or check the API.")
+                    st.sidebar.error("Extraction failed. Try a cleaner PDF.")
+
+# --- SEARCH ENGINE ---
+query = st.text_input("🔍 Search Combined Technical
