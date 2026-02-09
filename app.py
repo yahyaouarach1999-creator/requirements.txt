@@ -93,3 +93,58 @@ if query:
             st.markdown("---")
     else:
         st.warning("No matches found.")
+        import google.generativeai as genai
+from PyPDF2 import PdfReader
+import io
+
+# --- CONFIG AI (Get your key at aistudio.google.com) ---
+API_KEY = "YOUR_GEMINI_API_KEY_HERE" 
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-pro')
+
+def extract_pdf_text(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text()
+    return text
+
+# --- ADMIN SIDEBAR ---
+st.sidebar.divider()
+if st.sidebar.checkbox("🚀 Smart Admin Upload"):
+    st.header("Upload New SOP PDF")
+    st.info("The AI will read the PDF and automatically format it for your database.")
+    
+    new_pdf = st.file_uploader("Choose a PDF file", type="pdf")
+    
+    if new_pdf:
+        if st.button("✨ Extract & Add to Database"):
+            with st.spinner("AI is reading and organizing the document..."):
+                # 1. Read the PDF
+                raw_text = extract_pdf_text(new_pdf)
+                
+                # 2. Ask AI to format it as CSV rows
+                prompt = f"""
+                Act as a technical writer. Extract procedures from the text below.
+                Format the output ONLY as CSV lines with no header. 
+                Columns: System, Process, Instructions, Rationale.
+                Keep instructions detailed (step-by-step).
+                Text: {raw_text[:8000]} 
+                """
+                
+                response = model.generate_content(prompt)
+                new_rows_text = response.text
+                
+                # 3. Convert AI response to Dataframe and Save
+                try:
+                    new_rows_io = io.StringIO(new_rows_text)
+                    new_df_rows = pd.read_csv(new_rows_io, names=["System", "Process", "Instructions", "Rationale"])
+                    
+                    # Merge and Save
+                    final_df = pd.concat([df, new_df_rows], ignore_index=True)
+                    final_df.to_csv("sop_data.csv", index=False)
+                    
+                    st.success(f"Added {len(new_df_rows)} new procedures!")
+                    st.rerun()
+                except Exception as e:
+                    st.error("The AI output wasn't perfect. Please try again or check the API.")
