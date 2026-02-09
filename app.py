@@ -9,7 +9,8 @@ LINKS = {
     "Salesforce": "https://arrowcrm.lightning.force.com/",
     "SWB": "https://acswb.arrow.com/Swb/",
     "MyConnect": "https://arrow.service-now.com/myconnect",
-    "Admin_Email": "yahya.ouarach@arrow.com"
+    "Admin_Email": "yahya.ouarach@arrow.com",
+    "ETQ_Portal": "https://etq.arrow.com/"  # Updated based on SOP 7 
 }
 
 # --- 3. CUSTOM STYLING ---
@@ -17,31 +18,15 @@ st.markdown(f"""
     <style>
         .stApp {{ background-color: #FFFFFF; }}
         .main-header {{
-            background-color: #1E293B;
-            padding: 25px;
-            color: white;
-            text-align: center;
-            border-bottom: 4px solid #F97316;
-            margin-bottom: 20px;
+            background-color: #1E293B; padding: 25px; color: white; text-align: center;
+            border-bottom: 4px solid #F97316; margin-bottom: 20px;
         }}
         .main-header h1 {{ margin: 0; font-weight: 800; }}
-        .stExpander {{
-            border: 1px solid #E2E8F0 !important;
-            border-radius: 8px !important;
-            margin-bottom: 10px !important;
-        }}
+        .stExpander {{ border: 1px solid #E2E8F0 !important; border-radius: 8px !important; margin-bottom: 10px !important; }}
         .footer {{
-            position: fixed;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            background-color: #F8FAFC;
-            color: #64748B;
-            text-align: center;
-            padding: 8px;
-            font-size: 0.75rem;
-            border-top: 1px solid #E2E8F0;
-            z-index: 100;
+            position: fixed; left: 0; bottom: 0; width: 100%; background-color: #F8FAFC;
+            color: #64748B; text-align: center; padding: 8px; font-size: 0.75rem;
+            border-top: 1px solid #E2E8F0; z-index: 100;
         }}
     </style>
 """, unsafe_allow_html=True)
@@ -73,9 +58,9 @@ def load_data():
 df = load_data()
 
 # --- 6. SEARCH INTERFACE ---
-query = st.text_input("🔍 Search Knowledge Base", placeholder="Type a process (e.g., 'Same Meaning', 'QMS', 'SOP')...")
+query = st.text_input("🔍 Search Knowledge Base", placeholder="Search 'SOP 7', 'Sure Ship', 'Cancellation', 'Alexis'...")
 
-# --- 7. INTERACTIVE DISPLAY (Clickable Titles) ---
+# --- 7. INTERACTIVE DISPLAY ---
 if query and not df.empty:
     mask = df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)
     results = df[mask]
@@ -83,17 +68,13 @@ if query and not df.empty:
     if not results.empty:
         for _, row in results.iterrows():
             with st.expander(f"📌 {row.get('Process', 'Module')}", expanded=False):
-                st.markdown(f"**Instructions:**\n{row.get('Instructions', '')}", unsafe_allow_html=True)
+                st.markdown(f"**Step-by-Step Instructions:**\n{row.get('Instructions', '')}", unsafe_allow_html=True)
                 if row.get('Rationale'):
-                    st.info(f"**Rationale:** {row['Rationale']}")
+                    st.warning(f"💡 **Crucial Note:** {row['Rationale']}")
     else:
-        st.info("No matching modules found.")
+        st.info("No matching procedures found.")
 else:
-    st.caption("Enter search terms above to view process details and examples.")
+    st.caption("Enter a process name or keyword to view SOP details.")
 
 # --- 8. SOS FOOTER ---
-st.markdown(f"""
-    <div class="footer">
-        🆘 Support: <a href="mailto:{LINKS['Admin_Email']}">{LINKS['Admin_Email']}</a>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(f'<div class="footer">🆘 Support: <a href="mailto:{LINKS["Admin_Email"]}">{LINKS["Admin_Email"]}</a></div>', unsafe_allow_html=True)
