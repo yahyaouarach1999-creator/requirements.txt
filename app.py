@@ -1,55 +1,41 @@
 import streamlit as st
 import pandas as pd
 
-# --- CONFIG ---
-st.set_page_config(page_title="Arledge Ops Portal", layout="wide", page_icon="🏹")
+# --- APP CONFIG ---
+st.set_page_config(page_title="Arledge Ops Knowledge Base", layout="wide", page_icon="🏹")
 
 # --- CUSTOM CSS ---
 st.markdown("""
     <style>
-        .stApp { background-color: #FFFFFF; }
         .main-header {
-            background-color: #1E293B; padding: 20px; color: white; text-align: center;
-            border-bottom: 4px solid #F97316; margin-bottom: 20px;
+            background-color: #1E293B; padding: 25px; color: white; text-align: center;
+            border-bottom: 5px solid #F97316; margin-bottom: 25px;
         }
-        .instructions-box { 
-            white-space: pre-wrap; 
-            font-family: sans-serif; 
-            line-height: 1.6; 
-            color: #1E293B; 
-            background: #F8FAFC; 
-            padding: 20px; 
-            border-left: 5px solid #F97316;
-            border-radius: 5px; 
+        .instruction-box { 
+            white-space: pre-wrap; font-family: 'Consolas', monospace; 
+            line-height: 1.6; color: #1E293B; background: #F1F5F9; 
+            padding: 20px; border-left: 5px solid #F97316; border-radius: 4px;
         }
         .collector-card {
-            background: #FFF7ED;
-            padding: 15px;
-            border: 1px solid #FDBA74;
-            border-radius: 5px;
-            color: #7C2D12;
-            margin-bottom: 10px;
+            background-color: #FFF7ED; border: 1px solid #FDBA74;
+            padding: 15px; border-radius: 8px; color: #7C2D12; margin-bottom: 15px;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="main-header"><h1>🏹 ARLEDGE <span style="color:#F97316">OPERATIONS</span></h1></div>', unsafe_allow_html=True)
 
-# --- DATA ---
+# --- LOAD DATA ---
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv("sop_data.csv")
-        df.columns = df.columns.str.strip()
-        return df.fillna("")
-    except: return pd.DataFrame()
+    return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
 
 # --- SEARCH ---
-query = st.text_input("🔍 Search Operations Knowledge Base", placeholder="Search by Warehouse, Collector, or Process...")
+query = st.text_input("🔍 Search Full Technical SOPs (e.g., 'V90', 'Reno', 'IT')", placeholder="Search the database...")
 
-if query and not df.empty:
+if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
     
     if not results.empty:
@@ -58,9 +44,10 @@ if query and not df.empty:
                 st.markdown(f'<div class="collector-card"><b>{row["Process"]}</b><br>{row["Instructions"]}</div>', unsafe_allow_html=True)
             else:
                 with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
-                    st.write(f"**Application:** {row['Rationale']}")
-                    st.markdown(f'<div class="instructions-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                    st.write(f"**Application Context:** {row['Rationale']}")
+                    st.write("**Full Procedure / Template:**")
+                    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
     else:
-        st.warning("No matching procedures found.")
+        st.warning("No matching procedures found in the database.")
 else:
-    st.info("The knowledge base is updated with Navigation, Logistics, Finance, and Dropship procedures.")
+    st.info("The knowledge base is fully updated with the SOP 7 document. Enter a keyword above.")
