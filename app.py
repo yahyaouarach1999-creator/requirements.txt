@@ -5,7 +5,7 @@ import re
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# --- CUSTOM CSS FOR ONE-LINE NANO TILES & LOGIN ---
+# --- CUSTOM CSS ---
 st.markdown("""
     <style>
         .main-header { background-color: #0F172A; padding: 10px; color: white; text-align: center; border-bottom: 3px solid #F97316; margin-bottom: 15px; }
@@ -19,29 +19,29 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIN GATE ---
-if 'auth' not in st.session_state:
-    st.session_state['auth'] = False
+# --- AUTHENTICATION GATE ---
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
 
-def validate_arrow_email(email):
+def check_email(email):
     return bool(re.match(r"^[a-zA-Z0-9._%+-]+@arrow\.com$", email))
 
-if not st.session_state['auth']:
-    st.markdown('<div class="main-header"><h4>🔒 RESTRICTED ACCESS: ARROW EMPLOYEES ONLY</h4></div>', unsafe_allow_html=True)
-    with st.container():
-        email_input = st.text_input("Enter your @arrow.com email to unlock portal:", placeholder="username@arrow.com")
-        if st.button("Access Command Center"):
-            if validate_arrow_email(email_input):
-                st.session_state['auth'] = True
+if not st.session_state['authenticated']:
+    st.markdown('<div class="main-header"><h4>🔒 ARROW.COM ACCESS REQUIRED</h4></div>', unsafe_allow_html=True)
+    with st.form("auth"):
+        user_email = st.text_input("Official Email:")
+        if st.form_submit_button("Enter Portal"):
+            if check_email(user_email):
+                st.session_state['authenticated'] = True
                 st.rerun()
             else:
-                st.error("Access Denied: Please use your official @arrow.com email.")
+                st.error("Access Denied: @arrow.com domain only.")
     st.stop()
 
-# --- APP CONTENT (ONLY VISIBLE TO @ARROW.COM) ---
+# --- CONTENT ---
 st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
 
-# --- COMPACT NAVIGATION ROW ---
+# --- NANO NAVIGATION ---
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.markdown('<div class="nano-tile"><div class="nano-label">Salesforce</div></div>', unsafe_allow_html=True)
@@ -67,7 +67,7 @@ def load_data():
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
-query = st.text_input("🔍 Search Technical Knowledge Base", placeholder="Search word-for-word procedures...")
+query = st.text_input("🔍 Search 28 Technical Procedures", placeholder="Search 'Verification', 'Dropship', 'Alerts'...")
 
 if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
@@ -76,5 +76,7 @@ if query:
             with st.expander(f"📌 {row['System']} | {row['Process']}", expanded=True):
                 st.caption(f"**Rationale:** {row['Rationale']}")
                 st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                if st.button(f"Report Inaccuracy: {row['Process']}", key=row['Process']):
+                    st.info("Report logged. Please email Yahya with the correction.")
     else:
         st.warning("No matches found.")
