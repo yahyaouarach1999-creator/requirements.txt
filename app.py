@@ -8,15 +8,13 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 st.markdown("""
     <style>
         .main-header { background-color: #0F172A; padding: 10px; color: white; text-align: center; border-bottom: 3px solid #F97316; margin-bottom: 15px; }
-        .nano-row { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 20px; }
         .nano-tile { 
             background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; 
-            text-align: center; flex: 1; padding: 5px; transition: 0.2s;
+            text-align: center; padding: 5px; transition: 0.2s;
         }
         .nano-tile:hover { border-color: #F97316; background-color: #F1F5F9; transform: translateY(-1px); }
         .nano-label { font-size: 0.6rem; font-weight: 900; color: #64748B; text-transform: uppercase; margin-bottom: 2px; }
         .instruction-box { white-space: pre-wrap; font-family: 'Consolas', monospace; font-size: 0.85rem; background: #1E293B; color: #F8FAFC; padding: 15px; border-left: 5px solid #F97316; border-radius: 4px; }
-        .stButton>button { height: 30px; font-size: 0.7rem !important; padding: 0px 10px !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -48,7 +46,7 @@ def load_data():
     return pd.read_csv("sop_data.csv").fillna("")
 
 df = load_data()
-query = st.text_input("🔍 Search 28 Technical Procedures & Instructions", placeholder="Search 'Verification', 'Dropship', 'Alerts'...")
+query = st.text_input("🔍 Search 30+ Technical Procedures", placeholder="Search 'LOC Hold', 'CMF Verification', 'Dropship'...")
 
 if query:
     results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
@@ -58,4 +56,4 @@ if query:
                 st.caption(f"**Rationale:** {row['Rationale']}")
                 st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
     else:
-        st.warning("No matches found in the data.")
+        st.warning("No matches found.")
