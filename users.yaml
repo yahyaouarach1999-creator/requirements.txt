@@ -1,10 +1,1 @@
-credentials:
-  usernames:
-    admin:
-      name: Yahya Ouarach
-      password: "PASTE_HASH_HERE"
 
-cookie:
-  name: arledge_cookie
-  key: supersecretkey
-  expiry_days: 1
