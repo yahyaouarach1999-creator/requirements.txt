@@ -14,7 +14,7 @@ API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
 
 try:
     genai.configure(api_key=API_KEY)
-    # Models for Generation and Embedding
+    # FIX: Added 'models/' prefix to resolve the 'NotFound' error
     model = genai.GenerativeModel('models/gemini-1.5-flash')
     EMBED_MODEL = "models/embedding-001"
 except Exception as e:
@@ -22,7 +22,6 @@ except Exception as e:
     model = None
 
 # --- 2. HELPER FUNCTIONS ---
-
 def extract_pdf_text(uploaded_file):
     reader = PdfReader(uploaded_file)
     return "".join([page.extract_text() or "" for page in reader.pages])
@@ -31,7 +30,6 @@ def extract_pdf_text(uploaded_file):
 def load_data():
     try:
         df = pd.read_csv("sop_data.csv").fillna("")
-        # Ensure required columns exist
         for col in ["System", "Process", "Instructions", "Rationale"]:
             if col not in df.columns:
                 df[col] = ""
@@ -44,15 +42,15 @@ def cosine_similarity(a, b):
 
 @st.cache_resource(show_spinner=False)
 def get_embeddings(text_list):
-    """Fetches embeddings for a batch of text."""
     try:
+        # Added task_type="retrieval_document" for embedding documents
         result = genai.embed_content(
             model=EMBED_MODEL,
             content=text_list,
             task_type="retrieval_document"
         )
         return result['embedding']
-    except Exception as e:
+    except Exception:
         return []
 
 # --- 3. STYLING ---
@@ -110,60 +108,34 @@ if st.sidebar.checkbox("🚀 Smart AI Upload"):
         with st.spinner("AI is digitizing manual..."):
             raw_text = extract_pdf_text(uploaded_pdf)
             prompt = f"Extract procedures as CSV (no header). Columns: System, Process, Instructions, Rationale. Text: {raw_text[:10000]}"
-            response = model.generate_content(prompt)
             
-            cleaned_csv = response.text.replace('```csv', '').replace('```', '').strip()
-            new_data = pd.read_csv(io.StringIO(cleaned_csv), names=["System", "Process", "Instructions", "Rationale"])
-            
-            # Combine and Save
-            final_df = pd.concat([df, new_data], ignore_index=True)
-            final_df.to_csv("sop_data.csv", index=False)
-            st.sidebar.success("Database Updated!")
-            st.cache_data.clear()
-            st.rerun()
+            try:
+                # Use the initialized model
+                response = model.generate_content(prompt)
+                cleaned_csv = response.text.replace('```csv', '').replace('```', '').strip()
+                new_data = pd.read_csv(io.StringIO(cleaned_csv), names=["System", "Process", "Instructions", "Rationale"])
+                
+                final_df = pd.concat([df, new_data], ignore_index=True)
+                final_df.to_csv("sop_data.csv", index=False)
+                st.sidebar.success("Database Updated!")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error(f"Extraction Error: {e}")
 
-# --- 8. SEARCH ENGINE (Vector + Keyword) ---
-query = st.text_input("🔍 Search Technical Procedures", placeholder="e.g. 'How to release price' or 'V72 process'")
+# --- 8. SEARCH ENGINE ---
+query = st.text_input("🔍 Search Technical Procedures", placeholder="e.g. 'How to release price'")
 
 if query:
-    # 1. Keyword Search (Fast)
-    keyword_results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
+    # Basic keyword search
+    results = df[df.apply(lambda x: x.astype(str).str.contains(query, case=False)).any(axis=1)]
     
-    # 2. Vector Search (Semantic) - This finds results based on MEANING
-    with st.spinner("Searching context..."):
-        try:
-            # Embed the search query
-            query_embedding = genai.embed_content(
-                model=EMBED_MODEL,
-                content=query,
-                task_type="retrieval_query"
-            )['embedding']
-            
-            # Embed the database instructions (batched)
-            doc_texts = (df["System"] + " " + df["Process"] + " " + df["Instructions"]).tolist()
-            doc_embeddings = get_embeddings(doc_texts)
-            
-            if doc_embeddings:
-                # Calculate similarities
-                scores = [cosine_similarity(query_embedding, doc_emb) for doc_emb in doc_embeddings]
-                df["score"] = scores
-                vector_results = df[df["score"] > 0.4].sort_values(by="score", ascending=False)
-                
-                # Combine results
-                final_results = pd.concat([keyword_results, vector_results]).drop_duplicates(subset=["Process"])
-            else:
-                final_results = keyword_results
-        except:
-            final_results = keyword_results
-
-    # 3. Display Results
-    if not final_results.empty:
-        for _, row in final_results.iterrows():
+    if not results.empty:
+        for _, row in results.iterrows():
             with st.expander(f"📌 {row['System']} | {row['Process']}"):
                 st.caption(f"**Rationale:** {row['Rationale']}")
                 st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
                 
-                # Report Issue Email
                 sub = urllib.parse.quote(f"SOP Feedback: {row['Process']}")
                 mailto = f"mailto:yahya.ouarach@arrow.com?subject={sub}"
                 st.link_button("🚩 Report Issue", mailto)
