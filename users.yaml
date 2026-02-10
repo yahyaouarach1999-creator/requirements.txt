@@ -2,7 +2,7 @@ credentials:
   usernames:
     admin:
       name: Yahya Ouarach
-      password: "$2b$12$8Q9z0Yl9U5VYp7nCw7k7AOVp0YkR8K6H0sXJ8wGkX1ZlQm9Qz0Yy2"
+      password: "PASTE_HASH_HERE"
 
 cookie:
   name: arledge_cookie
