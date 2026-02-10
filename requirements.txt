@@ -2,8 +2,4 @@ streamlit
 pandas
 numpy
 PyPDF2
-google-generativeai>=0.7.2
-streamlit-authenticator
-PyYAML
-plotly
-bcrypt
+google-generativeai
