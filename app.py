@@ -7,21 +7,21 @@ from PyPDF2 import PdfReader
 import google.generativeai as genai
 
 # --------------------------------------------------
-# 1. PAGE CONFIG
+# PAGE CONFIG
 # --------------------------------------------------
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# 2. GEMINI AI CONFIG (STABLE SDK)
+# GEMINI CONFIG (CLOUD SAFE)
 # --------------------------------------------------
 API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
 genai.configure(api_key=API_KEY)
 
-CHAT_MODEL = "gemini-1.0-pro"  # Most widely supported
+CHAT_MODEL = "models/text-bison-001"   # ✅ Works on v1beta
 EMBED_MODEL = "models/embedding-001"
 
 # --------------------------------------------------
-# 3. UI STYLE
+# UI STYLE
 # --------------------------------------------------
 st.markdown("""
 <style>
@@ -33,7 +33,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 4. LOAD DATABASE
+# LOAD DATABASE
 # --------------------------------------------------
 def load_db():
     try:
@@ -47,7 +47,7 @@ def load_db():
 df = load_db()
 
 # --------------------------------------------------
-# 5. EMBEDDING FUNCTION
+# EMBEDDING FUNCTION
 # --------------------------------------------------
 def get_embedding(text):
     try:
@@ -57,16 +57,16 @@ def get_embedding(text):
             task_type="retrieval_document"
         )
         return json.dumps(result["embedding"])
-    except:
+    except Exception:
         return ""
 
 # --------------------------------------------------
-# 6. HEADER
+# HEADER
 # --------------------------------------------------
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 7. PDF INGESTION
+# PDF INGESTION
 # --------------------------------------------------
 st.sidebar.title("⚙️ SOP Management")
 
@@ -79,15 +79,19 @@ if st.sidebar.checkbox("🚀 Upload SOP PDF"):
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
 
-                model = genai.GenerativeModel(CHAT_MODEL)
                 prompt = f"""
 Extract procedures as CSV rows.
 Columns: System, Process, Instructions, Rationale.
 No headers. Text: {raw_text[:8000]}
 """
-                response = model.generate_content(prompt)
 
-                csv_data = response.text.replace("```csv", "").replace("```", "").strip()
+                response = genai.generate_text(
+                    model=CHAT_MODEL,
+                    prompt=prompt,
+                    temperature=0.2
+                )
+
+                csv_data = response.result.replace("```csv", "").replace("```", "").strip()
 
                 new_data = pd.read_csv(
                     io.StringIO(csv_data),
@@ -111,7 +115,7 @@ No headers. Text: {raw_text[:8000]}
                 st.sidebar.error(f"Error: {e}")
 
 # --------------------------------------------------
-# 8. SEARCH
+# SEARCH
 # --------------------------------------------------
 st.subheader("🔍 Intelligent SOP Search")
 query = st.text_input("Search technical procedures")
