@@ -4,6 +4,7 @@ import numpy as np
 import io
 import os
 import urllib.parse
+import json
 from datetime import datetime
 from PyPDF2 import PdfReader
 import google.generativeai as genai
@@ -31,31 +32,42 @@ color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6p
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 3. AI CONFIG (USES STREAMLIT SECRET)
+# 3. AI CONFIG
 # --------------------------------------------------
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # --------------------------------------------------
-# 4. DATA FUNCTIONS
+# 4. DATA LOADING
 # --------------------------------------------------
 @st.cache_data(ttl=3600)
 def load_data():
     try:
-        return pd.read_csv("sop_data.csv").fillna("")
+        df = pd.read_csv("sop_data.csv")
+        df.fillna("", inplace=True)
+        return df
     except:
-        df = pd.DataFrame(columns=["System","Process","Instructions","Rationale","Version","Last_Updated"])
+        df = pd.DataFrame(columns=[
+            "System","Process","Instructions","Rationale",
+            "Version","Last_Updated","Embedding"
+        ])
         df.to_csv("sop_data.csv", index=False)
         return df
 
 df = load_data()
 
+def save_data(dataframe):
+    dataframe.to_csv("sop_data.csv", index=False)
+
+# --------------------------------------------------
+# 5. PDF TEXT EXTRACTION
+# --------------------------------------------------
 def extract_pdf_text(uploaded_file):
     reader = PdfReader(uploaded_file)
     return "".join(page.extract_text() or "" for page in reader.pages)
 
 # --------------------------------------------------
-# 5. SIDEBAR METRICS
+# 6. SIDEBAR METRICS
 # --------------------------------------------------
 st.sidebar.markdown("### 📊 System Metrics")
 st.sidebar.metric("Total SOPs", len(df))
@@ -63,12 +75,12 @@ st.sidebar.metric("Systems", df["System"].nunique() if len(df) else 0)
 st.sidebar.metric("Processes", df["Process"].nunique() if len(df) else 0)
 
 # --------------------------------------------------
-# 6. HEADER
+# 7. HEADER
 # --------------------------------------------------
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 7. NAVIGATION LINKS
+# 8. NAVIGATION LINKS
 # --------------------------------------------------
 cols = st.columns(5)
 links = [
@@ -86,7 +98,25 @@ for col, (label, btn, url) in zip(cols, links):
 st.divider()
 
 # --------------------------------------------------
-# 8. ADMIN AI PDF INGESTION
+# 9. EMBEDDING FUNCTIONS (STORED)
+# --------------------------------------------------
+def embed_text(text):
+    try:
+        emb = genai.embed_content(
+            model="models/embedding-001",
+            content=text[:3000]
+        )["embedding"]
+        return json.dumps(emb)
+    except:
+        return ""
+
+def cosine_sim(a, b):
+    a = np.array(json.loads(a))
+    b = np.array(json.loads(b))
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
+# --------------------------------------------------
+# 10. ADMIN AI PDF INGESTION
 # --------------------------------------------------
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
@@ -100,12 +130,19 @@ Columns: System, Process, Instructions, Rationale.
 TEXT: {raw_text[:8000]}"""
                 response = model.generate_content(prompt)
                 cleaned = response.text.replace("```csv","").replace("```","").strip()
-                new_rows = pd.read_csv(io.StringIO(cleaned), names=["System","Process","Instructions","Rationale"])
+                new_rows = pd.read_csv(io.StringIO(cleaned),
+                                       names=["System","Process","Instructions","Rationale"])
                 new_rows["Version"] = 1
                 new_rows["Last_Updated"] = datetime.now()
+
+                # 🔥 Generate embeddings ONCE and store
+                st.sidebar.info("Generating embeddings for new SOPs...")
+                new_rows["Embedding"] = new_rows["Instructions"].apply(embed_text)
+
                 df_updated = pd.concat([df, new_rows], ignore_index=True)
-                df_updated.to_csv("sop_data.csv", index=False)
-                st.sidebar.success(f"Added {len(new_rows)} SOPs")
+                save_data(df_updated)
+
+                st.sidebar.success(f"Added {len(new_rows)} SOPs with AI index!")
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
@@ -113,32 +150,7 @@ TEXT: {raw_text[:8000]}"""
                 st.sidebar.exception(e)
 
 # --------------------------------------------------
-# 9. SAFE EMBEDDINGS
-# --------------------------------------------------
-def cosine_sim(a, b):
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-@st.cache_resource(show_spinner=False)
-def embed_single(text):
-    try:
-        result = genai.embed_content(
-            model="models/embedding-001",
-            content=text[:3000]
-        )
-        return result["embedding"]
-    except:
-        return None
-
-def build_embeddings(data):
-    texts = data["Instructions"].fillna("").tolist()
-    return [embed_single(t) for t in texts]
-
-if "embeddings" not in st.session_state and len(df) > 0:
-    with st.spinner("Preparing AI search index..."):
-        st.session_state.embeddings = build_embeddings(df)
-
-# --------------------------------------------------
-# 10. SEMANTIC SEARCH
+# 11. SEARCH
 # --------------------------------------------------
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader("🔍 Intelligent SOP Search")
@@ -147,16 +159,12 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 results = pd.DataFrame()
 
-if query and len(df) > 0 and "embeddings" in st.session_state:
+if query and len(df) > 0:
     try:
-        q_embed = genai.embed_content(model="models/embedding-001", content=query)["embedding"]
-        scores = []
-        for e in st.session_state.embeddings:
-            if e is None:
-                scores.append(-1)
-            else:
-                scores.append(cosine_sim(e, q_embed))
-        df["score"] = scores
+        q_embed = embed_text(query)
+        df["score"] = df["Embedding"].apply(
+            lambda x: cosine_sim(x, q_embed) if x else -1
+        )
         results = df.sort_values("score", ascending=False).head(5)
     except Exception as e:
         st.error("Search temporarily unavailable")
@@ -173,7 +181,7 @@ for _, row in results.iterrows():
     st.markdown("---")
 
 # --------------------------------------------------
-# 11. AI COPILOT
+# 12. AI COPILOT
 # --------------------------------------------------
 st.divider()
 st.markdown('<div class="card">', unsafe_allow_html=True)
