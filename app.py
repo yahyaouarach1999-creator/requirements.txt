@@ -12,12 +12,13 @@ import google.generativeai as genai
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# GEMINI CONFIG (CLOUD SAFE)
+# GEMINI CONFIG (STABLE ENDPOINTS)
 # --------------------------------------------------
 API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
 genai.configure(api_key=API_KEY)
 
-CHAT_MODEL = "models/text-bison-001"   # ✅ Works on v1beta
+# ✅ Updated to Gemini 1.5 Flash (Modern, fast, and free-tier friendly)
+MODEL_ID = "gemini-1.5-flash"
 EMBED_MODEL = "models/embedding-001"
 
 # --------------------------------------------------
@@ -26,7 +27,6 @@ EMBED_MODEL = "models/embedding-001"
 st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
-.card {background: rgba(255,255,255,0.05); border-radius: 14px; padding: 18px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.1);}
 .main-header {text-align:center; padding:12px; border-bottom:2px solid #f97316; margin-bottom:20px;}
 .instruction-box {white-space: pre-wrap; font-family: monospace; background: #0b1220; color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6px;}
 </style>
@@ -79,19 +79,22 @@ if st.sidebar.checkbox("🚀 Upload SOP PDF"):
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
 
+                # ✅ Updated to the new GenerativeModel class
+                model = genai.GenerativeModel(MODEL_ID)
+                
                 prompt = f"""
-Extract procedures as CSV rows.
-Columns: System, Process, Instructions, Rationale.
-No headers. Text: {raw_text[:8000]}
-"""
+                Extract the technical procedures from this text as a CSV format.
+                Columns: System, Process, Instructions, Rationale.
+                IMPORTANT: Provide ONLY the CSV data. No headers, no markdown blocks, no triple backticks.
+                
+                Text: {raw_text[:10000]}
+                """
 
-                response = genai.generate_text(
-                    model=CHAT_MODEL,
-                    prompt=prompt,
-                    temperature=0.2
-                )
-
-                csv_data = response.result.replace("```csv", "").replace("```", "").strip()
+                # ✅ Updated method call
+                response = model.generate_content(prompt)
+                
+                # Cleanup logic to ensure we only get the raw CSV text
+                csv_data = response.text.replace("```csv", "").replace("```", "").strip()
 
                 new_data = pd.read_csv(
                     io.StringIO(csv_data),
@@ -99,7 +102,7 @@ No headers. Text: {raw_text[:8000]}
                     header=None
                 )
 
-                st.sidebar.info("Generating embeddings...")
+                st.sidebar.info("Generating embeddings for search...")
                 new_data["Embedding"] = new_data.apply(
                     lambda x: get_embedding(f"{x['System']} {x['Process']} {x['Instructions']}"),
                     axis=1
@@ -118,13 +121,14 @@ No headers. Text: {raw_text[:8000]}
 # SEARCH
 # --------------------------------------------------
 st.subheader("🔍 Intelligent SOP Search")
-query = st.text_input("Search technical procedures")
+query = st.text_input("Search technical procedures (e.g., 'Collector Setup')")
 
 def cosine_sim(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
 if query and not df.empty:
-    q_emb = genai.embed_content(
+    # Use retrieval_query for search queries
+    q_emb_raw = genai.embed_content(
         model=EMBED_MODEL,
         content=query,
         task_type="retrieval_query"
@@ -133,22 +137,26 @@ if query and not df.empty:
     def calc_score(row_emb):
         if not row_emb:
             return 0
-        a = np.array(json.loads(row_emb))
-        b = np.array(q_emb)
-        return cosine_sim(a, b)
+        try:
+            a = np.array(json.loads(row_emb))
+            b = np.array(q_emb_raw)
+            return cosine_sim(a, b)
+        except:
+            return 0
 
     df["score"] = df["Embedding"].apply(calc_score)
     results = df.sort_values("score", ascending=False).head(5)
-    results = results[results["score"] > 0.25]
+    results = results[results["score"] > 0.3] # Slightly higher threshold for accuracy
 
     if not results.empty:
         for _, row in results.iterrows():
             st.markdown(f"### 📌 {row['System']} | {row['Process']}")
             st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-            st.caption(f"**Rationale:** {row['Rationale']}")
+            if row['Rationale']:
+                st.caption(f"**Rationale:** {row['Rationale']}")
             st.divider()
     else:
-        st.warning("No strong matches found.")
+        st.warning("No strong matches found. Try different keywords.")
 else:
     if df.empty:
-        st.info("Upload an SOP PDF from the sidebar to build the knowledge base.")
+        st.info("The database is currently empty. Upload a PDF from the sidebar.")
