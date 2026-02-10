@@ -27,10 +27,11 @@ color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6p
 </style>
 """, unsafe_allow_html=True)
 
-# 3. AI CONFIG (FIXED: Using direct key and proper model strings)
+# 3. AI CONFIG (FIXED: Using direct key and full model path)
 API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
 genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel("models/gemini-1.5-flash") # Added models/ prefix
+# FIX: Full path 'models/' is required to resolve NotFound/404 errors
+model = genai.GenerativeModel("models/gemini-1.5-flash") 
 
 # 4. DATA LOADING
 @st.cache_data(ttl=3600)
@@ -85,7 +86,7 @@ st.divider()
 # 9. EMBEDDING FUNCTIONS (FIXED: Added mandatory task_type)
 def embed_text(text, is_query=False):
     try:
-        # task_type is required for models/embedding-001
+        # FIX: task_type is required for models/embedding-001 or it returns 400 error
         t_type = "retrieval_query" if is_query else "retrieval_document"
         emb = genai.embed_content(
             model="models/embedding-001",
@@ -93,12 +94,13 @@ def embed_text(text, is_query=False):
             task_type=t_type
         )["embedding"]
         return json.dumps(emb)
-    except:
+    except Exception:
         return ""
 
 def cosine_sim(a, b):
     try:
         if not a or not b: return -1
+        # Convert stored JSON strings back to numpy arrays for calculation
         a_vec = np.array(json.loads(a))
         b_vec = np.array(json.loads(b))
         return np.dot(a_vec, b_vec) / (np.linalg.norm(a_vec) * np.linalg.norm(b_vec) + 1e-10)
@@ -115,13 +117,13 @@ if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
                 raw_text = extract_pdf_text(pdf)
                 prompt = f"""Extract SOP steps into CSV rows. 
 Columns: System, Process, Instructions, Rationale.
-Output only the CSV, no extra text.
+Output ONLY raw CSV rows, no markdown headers.
 TEXT: {raw_text[:8000]}"""
                 
                 response = model.generate_content(prompt)
                 cleaned = response.text.replace("```csv","").replace("```","").strip()
                 
-                # FIXED: Force header=None to prevent first SOP from being a column title
+                # Use header=None to ensure the first row of data isn't lost as a header
                 new_rows = pd.read_csv(io.StringIO(cleaned),
                                        names=["System","Process","Instructions","Rationale"],
                                        header=None)
@@ -129,7 +131,8 @@ TEXT: {raw_text[:8000]}"""
                 new_rows["Version"] = 1
                 new_rows["Last_Updated"] = datetime.now().strftime("%Y-%m-%d")
 
-                st.sidebar.info("Generating AI index...")
+                st.sidebar.info("Generating Search Index...")
+                # FIX: Storing embeddings allows search to work
                 new_rows["Embedding"] = new_rows["Instructions"].apply(lambda x: embed_text(x, is_query=False))
 
                 df_updated = pd.concat([df, new_rows], ignore_index=True)
@@ -140,7 +143,6 @@ TEXT: {raw_text[:8000]}"""
                 st.rerun()
             except Exception as e:
                 st.sidebar.error("AI processing failed")
-                st.sidebar.exception(e)
 
 # 11. SEARCH
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -153,14 +155,15 @@ results = pd.DataFrame()
 if query and len(df) > 0:
     try:
         q_embed = embed_text(query, is_query=True)
-        # Apply similarity scoring
+        # Calculate similarity against existing database
         df["score"] = df["Embedding"].apply(lambda x: cosine_sim(x, q_embed))
         results = df.sort_values("score", ascending=False).head(5)
-        # Only show relevant results
+        # Filter for quality matches
         results = results[results["score"] > 0.3]
-    except Exception as e:
-        st.error("Search index busy. Try again in a moment.")
+    except Exception:
+        st.error("Search index temporarily busy.")
 
+# Display search results
 for _, row in results.iterrows():
     st.markdown(f"### 📌 {row['System']} | {row['Process']}")
     st.caption(f"**Rationale:** {row['Rationale']}")
@@ -179,18 +182,17 @@ st.subheader("🧠 Arledge AI Copilot")
 question = st.text_area("Ask an operational question")
 
 if st.button("Get AI Guidance") and question:
-    with st.spinner("Consulting operations intelligence..."):
-        # Provide context from search results to AI
+    with st.spinner("Consulting intelligence..."):
+        # Use top search results to provide context for the AI answer
         context = "\n\n".join(results["Instructions"].astype(str).tolist())
-        prompt = f"""Use the following SOP context to answer the question:
+        prompt = f"""Use this SOP context to answer:
         {context}
         
         QUESTION: {question}"""
         try:
             answer = model.generate_content(prompt)
             st.write(answer.text)
-        except Exception as e:
-            st.error("AI system unavailable")
-            st.exception(e)
+        except Exception:
+            st.error("AI system currently unavailable")
 
 st.markdown('</div>', unsafe_allow_html=True)
