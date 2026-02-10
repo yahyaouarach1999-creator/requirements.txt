@@ -11,7 +11,7 @@ import google.generativeai as genai
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# 2. PREMIUM UI THEME (Icons & Platforms)
+# 2. PREMIUM UI THEME (Icons & Platforms Restored)
 st.markdown("""
 <style>
     .stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
@@ -25,38 +25,39 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. AI CONFIG (FIXED: Auto-Detecting Model to solve 404)
+# 3. AI CONFIG (FIXED: Auto-Discovery logic to solve 404)
 API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
 genai.configure(api_key=API_KEY)
 
-# This logic finds the correct flash model name for your specific API version
-def get_flash_model():
+def get_available_model():
+    """Finds the correct model name for your API key's current version."""
     try:
-        for m in genai.list_models():
-            if 'gemini-1.5-flash' in m.name:
-                return m.name
+        # Check for 1.5 Flash specifically
+        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        flash_models = [m for m in models if 'gemini-1.5-flash' in m]
+        if flash_models:
+            return flash_models[0]
         return "models/gemini-1.5-flash" # Fallback
     except:
         return "gemini-1.5-flash"
 
-FLASH_MODEL = get_flash_model()
+FLASH_MODEL = get_available_model()
 EMBED_MODEL = "models/embedding-001"
 
-# 4. DATABASE LOADING
+# 4. DATA LOADING
 @st.cache_data(ttl=3600)
 def load_data():
     try:
         df = pd.read_csv("sop_data.csv").fillna("")
-        # Repair missing columns
-        for col in ["System", "Process", "Instructions", "Rationale", "Embedding"]:
-            if col not in df.columns: df[col] = ""
+        # Ensure search column exists
+        if "Embedding" not in df.columns: df["Embedding"] = ""
         return df
     except:
         return pd.DataFrame(columns=["System","Process","Instructions","Rationale","Embedding"])
 
 df = load_data()
 
-# 5. EMBEDDING LOGIC (Fixed Task Types)
+# 5. EMBEDDING LOGIC (Fixed Task Type)
 def embed_text(text, is_query=False):
     try:
         t_type = "retrieval_query" if is_query else "retrieval_document"
@@ -71,8 +72,9 @@ def cosine_sim(a, b):
         return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b) + 1e-10)
     except: return -1
 
-# 6. PLATFORM ICONS (Restored)
+# 6. HEADER & PLATFORM ICONS (Restored)
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND</h2></div>', unsafe_allow_html=True)
+
 cols = st.columns(5)
 platforms = [
     ("SALESFORCE", "🚀 CRM", "https://arrowcrm.lightning.force.com/"),
@@ -81,6 +83,7 @@ platforms = [
     ("SUPPORT", "🛠️ Tickets", "https://arrow.service-now.com/myconnect"),
     ("SOS HELP", "🆘 Contact", "mailto:yahya.ouarach@arrow.com")
 ]
+
 for col, (label, btn, url) in zip(cols, platforms):
     with col:
         st.markdown(f'<div class="nano-tile"><div class="nano-label">{label}</div></div>', unsafe_allow_html=True)
@@ -98,21 +101,22 @@ if st.sidebar.checkbox("🚀 Smart AI Upload"):
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
                 
-                # Use the auto-detected model name
+                # FIXED: Using the discovered model name
                 model = genai.GenerativeModel(FLASH_MODEL)
-                prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO MARKDOWN. Text: {raw_text[:8000]}"
+                prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO HEADERS. Text: {raw_text[:8000]}"
                 response = model.generate_content(prompt)
                 
                 csv_clean = response.text.replace("```csv", "").replace("```", "").strip()
                 new_rows = pd.read_csv(io.StringIO(csv_clean), names=["System", "Process", "Instructions", "Rationale"], header=None)
                 
-                # Generate vectors
+                # Create Search Index
+                st.sidebar.info("Building AI Search Index...")
                 new_rows["Embedding"] = (new_rows["System"] + " " + new_rows["Process"]).apply(lambda x: embed_text(x))
                 
                 df_updated = pd.concat([df, new_rows], ignore_index=True)
                 df_updated.to_csv("sop_data.csv", index=False)
                 
-                st.sidebar.success(f"Success! Model Used: {FLASH_MODEL}")
+                st.sidebar.success(f"Successfully learned via {FLASH_MODEL}")
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
@@ -120,7 +124,7 @@ if st.sidebar.checkbox("🚀 Smart AI Upload"):
 
 # 8. SEARCH ENGINE
 st.markdown('<div class="card">', unsafe_allow_html=True)
-query = st.text_input("🔍 Search Technical Procedures")
+query = st.text_input("🔍 Search Technical Procedures (e.g. 'Dropship')")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if query and not df.empty:
@@ -132,7 +136,7 @@ if query and not df.empty:
     if not results.empty:
         for _, row in results.iterrows():
             st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="instruction-box">{row['Instructions']}</div>', unsafe_allow_html=True)
             st.divider()
     else:
-        st.warning("No matches found.")
+        st.warning("No matches found in SOP data.")
