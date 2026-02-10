@@ -1,209 +1,227 @@
 import streamlit as st
 import pandas as pd
-import re
+import numpy as np
 import io
+import time
+import yaml
 import urllib.parse
+from datetime import datetime
 from PyPDF2 import PdfReader
 import google.generativeai as genai
+import streamlit_authenticator as stauth
 
-# =========================================================
-# 1. PAGE SETUP
-# =========================================================
-st.set_page_config(
-    page_title="Arledge Command Center",
-    page_icon="🏹",
-    layout="wide"
-)
+# --------------------------------------------------
+# 1. PAGE CONFIG
+# --------------------------------------------------
+st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# =========================================================
-# 2. AI INITIALIZATION (SECURE)
-# =========================================================
-@st.cache_resource
-def init_model():
-    try:
-        # Note: Ensure GEMINI_API_KEY is set in your Streamlit Secrets
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        return genai.GenerativeModel("models/gemini-1.5-flash")
-    except Exception:
-        return None
-
-model = init_model()
-
-# =========================================================
-# 3. DATA & HELPERS
-# =========================================================
-@st.cache_data
-def load_data():
-    try:
-        return pd.read_csv("sop_data.csv").fillna("")
-    except Exception:
-        df = pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale"])
-        df.to_csv("sop_data.csv", index=False)
-        return df
-
-@st.cache_data(show_spinner=False)
-def extract_pdf_text(file_bytes):
-    reader = PdfReader(io.BytesIO(file_bytes))
-    return "\n".join(page.extract_text() or "" for page in reader.pages)
-
-def validate_rows(check_df):
-    required = {"System", "Process", "Instructions", "Rationale"}
-    return required.issubset(check_df.columns) and not check_df.empty
-
-# =========================================================
-# 4. STYLES
-# =========================================================
+# --------------------------------------------------
+# 2. PREMIUM UI THEME
+# --------------------------------------------------
 st.markdown("""
 <style>
+.stApp {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #f1f5f9;
+}
+.block-container { padding-top: 1rem; }
+.card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+}
 .main-header {
-    background:#0F172A;
-    color:white;
-    padding:12px;
     text-align:center;
-    border-bottom:3px solid #F97316;
-    margin-bottom:15px;
+    padding:12px;
+    border-bottom:2px solid #f97316;
+    margin-bottom:20px;
 }
 .nano-tile {
-    background:#F8FAFC;
-    border:1px solid #CBD5E1;
-    border-radius:8px;
-    padding:10px;
+    background: rgba(255,255,255,0.05);
+    border-radius:10px;
+    padding:8px;
     text-align:center;
 }
 .nano-label {
-    font-size:0.7rem;
-    font-weight:800;
-    color:#64748B;
+    font-size:0.65rem;
+    font-weight:700;
+    color:#94a3b8;
     text-transform:uppercase;
 }
 .instruction-box {
-    white-space:pre-wrap;
-    font-family:monospace;
-    background:#1E293B;
-    color:#F8FAFC;
-    padding:15px;
-    border-left:5px solid #F97316;
-    border-radius:6px;
-}
-mark {
-    background:#FACC15;
-    padding:2px 4px;
-    border-radius:4px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    background: #0b1220;
+    color: #f8fafc;
+    padding: 15px;
+    border-left: 4px solid #f97316;
+    border-radius: 6px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
-# 5. AUTHENTICATION
-# =========================================================
-if "auth" not in st.session_state:
-    st.session_state.auth = False
+# --------------------------------------------------
+# 3. AUTHENTICATION (Enterprise Style)
+# --------------------------------------------------
+with open("users.yaml") as file:
+    config = yaml.safe_load(file)
 
-if not st.session_state.auth:
-    st.markdown('<div class="main-header"><h4>🔒 ARROW.COM ACCESS REQUIRED</h4></div>', unsafe_allow_html=True)
-    email = st.text_input("Official Arrow Email")
-    if st.button("Enter Portal"):
-        if "@arrow.com" in email.lower():
-            st.session_state.auth = True
-            st.rerun()
-        else:
-            st.error("Access denied.")
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days']
+)
+
+name, auth_status, username = authenticator.login("Login", "main")
+
+if auth_status is False:
+    st.error("Invalid credentials")
+    st.stop()
+elif auth_status is None:
+    st.warning("Enter your credentials")
     st.stop()
 
-# =========================================================
-# 6. APP CONTENT
-# =========================================================
-st.markdown('<div class="main-header"><h4>🏹 ARLEDGE OPERATIONS COMMAND</h4></div>', unsafe_allow_html=True)
+authenticator.logout("Logout", "sidebar")
+st.sidebar.success(f"Welcome {name}")
 
-# Quick Nav
-c1, c2, c3, c4, c5 = st.columns(5)
-with c1:
-    st.markdown('<div class="nano-tile"><div class="nano-label">Salesforce</div></div>', unsafe_allow_html=True)
-    st.link_button("🚀 CRM", "https://arrowcrm.lightning.force.com/", use_container_width=True)
-with c2:
-    st.markdown('<div class="nano-tile"><div class="nano-label">SWB Oracle</div></div>', unsafe_allow_html=True)
-    st.link_button("💾 Orders", "https://acswb.arrow.com/Swb/", use_container_width=True)
-with c3:
-    st.markdown('<div class="nano-tile"><div class="nano-label">ETQ Portal</div></div>', unsafe_allow_html=True)
-    st.link_button("📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal", use_container_width=True)
-with c4:
-    st.markdown('<div class="nano-tile"><div class="nano-label">ServiceNow</div></div>', unsafe_allow_html=True)
-    st.link_button("🛠️ Tickets", "https://arrow.service-now.com/myconnect", use_container_width=True)
-with c5:
-    st.markdown('<div class="nano-tile"><div class="nano-label">SOS Help</div></div>', unsafe_allow_html=True)
-    st.link_button("🆘 Contact", "mailto:yahya.ouarach@arrow.com", use_container_width=True)
+# --------------------------------------------------
+# 4. AI CONFIG
+# --------------------------------------------------
+API_KEY = "YOUR_GEMINI_KEY_HERE"
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel("models/gemini-1.5-flash")
+
+# --------------------------------------------------
+# 5. DATA FUNCTIONS
+# --------------------------------------------------
+@st.cache_data(ttl=3600)
+def load_data():
+    try:
+        return pd.read_csv("sop_data.csv").fillna("")
+    except:
+        df = pd.DataFrame(columns=["System","Process","Instructions","Rationale","Version","Last_Updated"])
+        df.to_csv("sop_data.csv", index=False)
+        return df
+
+df = load_data()
+
+def extract_pdf_text(uploaded_file):
+    reader = PdfReader(uploaded_file)
+    return "".join(page.extract_text() or "" for page in reader.pages)
+
+# --------------------------------------------------
+# 6. SIDEBAR DASHBOARD
+# --------------------------------------------------
+st.sidebar.markdown("### 📊 System Metrics")
+st.sidebar.metric("Total SOPs", len(df))
+st.sidebar.metric("Systems", df["System"].nunique())
+st.sidebar.metric("Processes", df["Process"].nunique())
+
+# --------------------------------------------------
+# 7. HEADER
+# --------------------------------------------------
+st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
+
+# --------------------------------------------------
+# 8. NAVIGATION TILES
+# --------------------------------------------------
+cols = st.columns(5)
+links = [
+    ("Salesforce", "🚀 CRM", "https://arrowcrm.lightning.force.com/"),
+    ("SWB Oracle", "💾 Orders", "https://acswb.arrow.com/Swb/"),
+    ("ETQ Portal", "📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal"),
+    ("Support", "🛠️ Tickets", "https://arrow.service-now.com/myconnect"),
+    ("SOS Help", "🆘 Contact", "mailto:yahya.ouarach@arrow.com")
+]
+for col, (label, btn, url) in zip(cols, links):
+    with col:
+        st.markdown(f'<div class="nano-tile"><div class="nano-label">{label}</div></div>', unsafe_allow_html=True)
+        st.link_button(btn, url, use_container_width=True)
 
 st.divider()
 
-# =========================================================
-# 7. ADMIN SIDEBAR (The Factory)
-# =========================================================
-df = load_data()
-
+# --------------------------------------------------
+# 9. ADMIN AI PDF INGESTION
+# --------------------------------------------------
 st.sidebar.title("⚙️ Admin Console")
-if st.sidebar.checkbox("🚀 Smart AI Upload"):
-    st.sidebar.info("Upload SOP PDF → AI extracts procedures")
-    pdf_file = st.sidebar.file_uploader("Upload PDF", type="pdf")
-
-    if pdf_file and st.sidebar.button("✨ Extract & Preview"):
-        if model is None:
-            st.sidebar.error("AI not initialized. Check Secrets.")
-        else:
-            with st.spinner("AI Reading..."):
-                raw_text = extract_pdf_text(pdf_file.getvalue())
-                prompt = f"Extract procedures. Output ONLY CSV rows. Columns: System, Process, Instructions, Rationale. Text: {raw_text[:8000]}"
-                
+if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
+    pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
+    if pdf and st.sidebar.button("✨ Extract Procedures"):
+        with st.spinner("AI is analyzing the document..."):
+            try:
+                raw_text = extract_pdf_text(pdf)
+                prompt = f"""Extract SOP steps into CSV rows.
+Columns: System, Process, Instructions, Rationale.
+TEXT: {raw_text[:8000]}"""
                 response = model.generate_content(prompt)
-                cleaned = response.text.replace("```csv", "").replace("```", "").strip()
-                
-                try:
-                    preview_df = pd.read_csv(
-                        io.StringIO(cleaned),
-                        names=["System", "Process", "Instructions", "Rationale"],
-                        on_bad_lines='skip'
-                    )
-                    if validate_rows(preview_df):
-                        st.session_state.preview_df = preview_df
-                        st.sidebar.success(f"Found {len(preview_df)} items.")
-                    else:
-                        st.sidebar.error("Invalid format extracted.")
-                except Exception as e:
-                    st.sidebar.error(f"Error: {e}")
+                cleaned = response.text.replace("```csv","").replace("```","").strip()
+                new_rows = pd.read_csv(io.StringIO(cleaned), names=["System","Process","Instructions","Rationale"])
+                new_rows["Version"] = 1
+                new_rows["Last_Updated"] = datetime.now()
+                df_updated = pd.concat([df, new_rows], ignore_index=True)
+                df_updated.to_csv("sop_data.csv", index=False)
+                st.sidebar.success(f"Added {len(new_rows)} SOPs")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error("AI processing failed")
+                st.sidebar.exception(e)
 
-    if "preview_df" in st.session_state:
-        st.sidebar.write("### Preview Data")
-        st.sidebar.dataframe(st.session_state.preview_df, hide_index=True)
-        if st.sidebar.button("✅ Save to Database"):
-            updated_df = pd.concat([df, st.session_state.preview_df], ignore_index=True)
-            updated_df.to_csv("sop_data.csv", index=False)
-            del st.session_state.preview_df
-            st.cache_data.clear()
-            st.sidebar.success("Database Saved!")
-            st.rerun()
+# --------------------------------------------------
+# 10. SEMANTIC SEARCH
+# --------------------------------------------------
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("🔍 Intelligent SOP Search")
+query = st.text_input("Search procedures in plain English")
+st.markdown('</div>', unsafe_allow_html=True)
 
-# =========================================================
-# 8. SEARCH ENGINE (SQL Style)
-# =========================================================
-query = st.text_input("🔍 Search Combined Technical Procedures", placeholder="e.g., 'V72', 'Price Release'")
+def cosine_sim(a,b): return np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b))
 
-if query:
-    mask = (
-        df["System"].str.contains(query, case=False) |
-        df["Process"].str.contains(query, case=False) |
-        df["Instructions"].str.contains(query, case=False) |
-        df["Rationale"].str.contains(query, case=False)
-    )
-    results = df[mask]
-    
-    if not results.empty:
-        for _, row in results.iterrows():
-            with st.expander(f"📌 {row['System']} | {row['Process']}"):
-                st.info(f"**Rationale:** {row['Rationale']}")
-                st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-                
-                # Report Issue Button
-                subject = urllib.parse.quote(f"Issue with {row['Process']}")
-                mailto = f"mailto:yahya.ouarach@arrow.com?subject={subject}"
-                st.link_button("🚩 Report Issue", mailto)
-    else:
-        st.warning("No matches found.")
+@st.cache_resource
+def build_embeddings(texts):
+    return [genai.embed_content(model="models/embedding-001", content=t)["embedding"] for t in texts]
+
+if "embedding" not in df.columns and len(df) > 0:
+    df["embedding"] = build_embeddings(df["Instructions"])
+
+results = pd.DataFrame()
+
+if query and len(df) > 0:
+    q_embed = genai.embed_content(model="models/embedding-001", content=query)["embedding"]
+    df["score"] = df["embedding"].apply(lambda x: cosine_sim(x, q_embed))
+    results = df.sort_values("score", ascending=False).head(5)
+
+for _, row in results.iterrows():
+    st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+    st.caption(f"**Rationale:** {row['Rationale']}")
+    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+
+    subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
+    body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
+    st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}")
+    st.markdown("---")
+
+# --------------------------------------------------
+# 11. AI COPILOT
+# --------------------------------------------------
+st.divider()
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("🧠 Arledge AI Copilot")
+
+question = st.text_area("Ask an operational question")
+
+if st.button("Get AI Guidance") and question:
+    with st.spinner("Consulting operations intelligence..."):
+        context = "\n\n".join(results["Instructions"].tolist())
+        prompt = f"""Answer using ONLY this SOP data:\n{context}\nQUESTION: {question}"""
+        try:
+            answer = model.generate_content(prompt)
+            st.write(answer.text)
+        except:
+            st.error("AI system unavailable")
+
+st.markdown('</div>', unsafe_allow_html=True)
