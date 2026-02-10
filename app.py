@@ -6,27 +6,15 @@ import json
 from PyPDF2 import PdfReader
 import google.generativeai as genai
 
-# 1. PAGE CONFIG
-st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
-
-# 2. AI CONFIG (The Final Stable Fix)
+# 1. AI CONFIG (The 404 Fix)
 API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
 genai.configure(api_key=API_KEY)
 
-# Use the string 'gemini-1.5-flash' directly - it works best for Free Tier projects
+# Use the direct model name. The SDK handles the pathing.
 MODEL_ID = 'gemini-1.5-flash'
 EMBED_MODEL = "models/embedding-001"
 
-# 3. UI STYLE
-st.markdown("""
-<style>
-.stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
-.main-header {text-align:center; padding:12px; border-bottom:2px solid #f97316; margin-bottom:20px;}
-.instruction-box {white-space: pre-wrap; font-family: monospace; background: #0b1220; color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6px;}
-</style>
-""", unsafe_allow_html=True)
-
-# 4. DATA LOGIC
+# 2. DATA LOADING (Handles the "Clean Slate" you mentioned)
 def load_db():
     try:
         df = pd.read_csv("sop_data.csv")
@@ -35,70 +23,73 @@ def load_db():
     except:
         return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "Embedding"])
 
+# 3. PDF PROCESSING LOGIC
+def process_pdf(pdf_file, current_df):
+    reader = PdfReader(pdf_file)
+    raw_text = "".join([p.extract_text() or "" for p in reader.pages])
+
+    # Initialize the model using the stable v1 path
+    model = genai.GenerativeModel(MODEL_ID)
+    
+    prompt = f"""
+    Extract technical procedures from this text as CSV rows.
+    Columns: System, Process, Instructions, Rationale.
+    NO headers, NO markdown backticks.
+    Text: {raw_text[:8000]}
+    """
+    
+    # generate_content is the correct method for Gemini models
+    response = model.generate_content(prompt)
+    
+    # Clean the output in case AI adds markdown
+    csv_data = response.text.replace("```csv", "").replace("```", "").strip()
+    
+    new_rows = pd.read_csv(io.StringIO(csv_data), 
+                           names=["System", "Process", "Instructions", "Rationale"], 
+                           header=None)
+    
+    # Immediate Embedding for Search
+    st.info("Indexing for search...")
+    new_rows["Embedding"] = new_rows.apply(
+        lambda x: json.dumps(genai.embed_content(
+            model=EMBED_MODEL, 
+            content=f"{x['System']} {x['Process']}", 
+            task_type="retrieval_document"
+        )['embedding']), axis=1
+    )
+    
+    return pd.concat([current_df, new_rows], ignore_index=True)
+
+# 4. APP INTERFACE
+st.title("🏹 Arledge Operations Command")
+
 df = load_db()
 
-def get_embedding(text, task="retrieval_document"):
-    try:
-        res = genai.embed_content(model=EMBED_MODEL, content=text[:3000], task_type=task)
-        return json.dumps(res['embedding'])
-    except: return ""
+with st.sidebar:
+    st.header("⚙️ Admin")
+    uploaded_file = st.file_uploader("Upload SOP PDF", type="pdf")
+    if uploaded_file and st.button("Implement SOP"):
+        df = process_pdf(uploaded_file, df)
+        df.to_csv("sop_data.csv", index=False)
+        st.success("SOP Added!")
+        st.rerun()
 
-# 5. HEADER
-st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
-
-# 6. SIDEBAR: PDF INGESTION
-st.sidebar.title("⚙️ SOP Management")
-if st.sidebar.checkbox("🚀 Upload SOP PDF"):
-    pdf_file = st.sidebar.file_uploader("Upload PDF", type="pdf")
-    if pdf_file and st.sidebar.button("✨ Extract & Implement"):
-        with st.spinner("AI is analyzing document structure..."):
-            try:
-                reader = PdfReader(pdf_file)
-                raw_text = "".join([p.extract_text() or "" for p in reader.pages])
-
-                # Use the GenerativeModel class (Standard for Gemini)
-                model = genai.GenerativeModel(MODEL_ID)
-                prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO headers. Text: {raw_text[:8000]}"
-                
-                response = model.generate_content(prompt)
-                csv_data = response.text.replace("```csv", "").replace("```", "").strip()
-
-                new_data = pd.read_csv(io.StringIO(csv_data), 
-                                      names=["System", "Process", "Instructions", "Rationale"], 
-                                      header=None)
-
-                st.sidebar.info("Building AI Search Index...")
-                new_data["Embedding"] = new_data.apply(lambda x: get_embedding(f"{x['System']} {x['Process']}"), axis=1)
-
-                final_df = pd.concat([df, new_data], ignore_index=True)
-                final_df.to_csv("sop_data.csv", index=False)
-                st.sidebar.success("Database Updated!")
-                st.rerun()
-            except Exception as e:
-                st.sidebar.error(f"Error: {e}")
-
-# 7. SEARCH ENGINE
-st.subheader("🔍 Intelligent SOP Search")
-query = st.text_input("Search technical procedures")
-
+# 5. SEARCH LOGIC
+query = st.text_input("🔍 Search Procedures")
 if query and not df.empty:
-    # Embed the query
-    q_res = genai.embed_content(model=EMBED_MODEL, content=query, task_type="retrieval_query")
-    q_emb = np.array(q_res['embedding'])
-
-    def score(row_emb):
+    # Embed search query
+    q_emb = genai.embed_content(model=EMBED_MODEL, content=query, task_type="retrieval_query")['embedding']
+    
+    def get_sim(row_emb):
         if not row_emb: return 0
-        a = np.array(json.loads(row_emb))
-        return np.dot(a, q_emb) / (np.linalg.norm(a) * np.linalg.norm(q_emb) + 1e-10)
+        a, b = np.array(json.loads(row_emb)), np.array(q_emb)
+        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
-    df["score"] = df["Embedding"].apply(score)
-    results = df.sort_values("score", ascending=False).head(5)
-    results = results[results["score"] > 0.25]
-
-    if not results.empty:
-        for _, row in results.iterrows():
+    df["score"] = df["Embedding"].apply(get_sim)
+    results = df.sort_values("score", ascending=False).head(3)
+    
+    for _, row in results.iterrows():
+        with st.container():
             st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            st.code(row['Instructions'])
             st.divider()
-    else:
-        st.warning("No matches found.")
