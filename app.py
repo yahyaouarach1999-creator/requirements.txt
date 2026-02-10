@@ -11,7 +11,7 @@ import google.generativeai as genai
 # 1. PAGE CONFIG
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# 2. PREMIUM UI THEME (Icons Restored)
+# 2. PREMIUM UI THEME (Icons & Platforms)
 st.markdown("""
 <style>
     .stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
@@ -25,49 +25,54 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. AI CONFIG (Fixed Model Path for v1beta)
+# 3. AI CONFIG (FIXED: Auto-Detecting Model to solve 404)
 API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
 genai.configure(api_key=API_KEY)
-# Mandatory 'models/' prefix ensures the 404/NotFound error is fixed
-MODEL_NAME = "models/gemini-1.5-flash"
-EMBED_NAME = "models/embedding-001"
 
-# 4. DATABASE AUTO-REPAIR (Fixes KeyError)
+# This logic finds the correct flash model name for your specific API version
+def get_flash_model():
+    try:
+        for m in genai.list_models():
+            if 'gemini-1.5-flash' in m.name:
+                return m.name
+        return "models/gemini-1.5-flash" # Fallback
+    except:
+        return "gemini-1.5-flash"
+
+FLASH_MODEL = get_flash_model()
+EMBED_MODEL = "models/embedding-001"
+
+# 4. DATABASE LOADING
 @st.cache_data(ttl=3600)
 def load_data():
     try:
         df = pd.read_csv("sop_data.csv").fillna("")
-        # Auto-fix missing columns if the CSV is old
-        required_cols = ["System", "Process", "Instructions", "Rationale", "Embedding"]
-        for col in required_cols:
-            if col not in df.columns:
-                df[col] = ""
+        # Repair missing columns
+        for col in ["System", "Process", "Instructions", "Rationale", "Embedding"]:
+            if col not in df.columns: df[col] = ""
         return df
     except:
         return pd.DataFrame(columns=["System","Process","Instructions","Rationale","Embedding"])
 
 df = load_data()
 
-# 5. EMBEDDING LOGIC (Fixed Task Type)
+# 5. EMBEDDING LOGIC (Fixed Task Types)
 def embed_text(text, is_query=False):
     try:
         t_type = "retrieval_query" if is_query else "retrieval_document"
-        result = genai.embed_content(model=EMBED_NAME, content=text[:3000], task_type=t_type)
+        result = genai.embed_content(model=EMBED_MODEL, content=text[:3000], task_type=t_type)
         return json.dumps(result['embedding'])
-    except:
-        return ""
+    except: return ""
 
 def cosine_sim(a, b):
     try:
         if not a or not b: return -1
         vec_a, vec_b = np.array(json.loads(a)), np.array(json.loads(b))
         return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b) + 1e-10)
-    except:
-        return -1
+    except: return -1
 
-# 6. HEADER & PLATFORM ICONS (Restored)
+# 6. PLATFORM ICONS (Restored)
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND</h2></div>', unsafe_allow_html=True)
-
 cols = st.columns(5)
 platforms = [
     ("SALESFORCE", "🚀 CRM", "https://arrowcrm.lightning.force.com/"),
@@ -76,7 +81,6 @@ platforms = [
     ("SUPPORT", "🛠️ Tickets", "https://arrow.service-now.com/myconnect"),
     ("SOS HELP", "🆘 Contact", "mailto:yahya.ouarach@arrow.com")
 ]
-
 for col, (label, btn, url) in zip(cols, platforms):
     with col:
         st.markdown(f'<div class="nano-tile"><div class="nano-label">{label}</div></div>', unsafe_allow_html=True)
@@ -84,7 +88,7 @@ for col, (label, btn, url) in zip(cols, platforms):
 
 st.divider()
 
-# 7. FIXED ADMIN UPLOAD (Fixed 404/NotFound)
+# 7. ADMIN UPLOAD (Fixed 404 Issue)
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI Upload"):
     pdf_file = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
@@ -94,21 +98,21 @@ if st.sidebar.checkbox("🚀 Smart AI Upload"):
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
                 
-                # FIXED: Calling model with full path
-                model = genai.GenerativeModel(MODEL_NAME)
+                # Use the auto-detected model name
+                model = genai.GenerativeModel(FLASH_MODEL)
                 prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO MARKDOWN. Text: {raw_text[:8000]}"
                 response = model.generate_content(prompt)
                 
                 csv_clean = response.text.replace("```csv", "").replace("```", "").strip()
                 new_rows = pd.read_csv(io.StringIO(csv_clean), names=["System", "Process", "Instructions", "Rationale"], header=None)
                 
-                # Generate vectors so search actually works
+                # Generate vectors
                 new_rows["Embedding"] = (new_rows["System"] + " " + new_rows["Process"]).apply(lambda x: embed_text(x))
                 
                 df_updated = pd.concat([df, new_rows], ignore_index=True)
                 df_updated.to_csv("sop_data.csv", index=False)
                 
-                st.sidebar.success("SOPs Learned Successfully!")
+                st.sidebar.success(f"Success! Model Used: {FLASH_MODEL}")
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
@@ -116,22 +120,19 @@ if st.sidebar.checkbox("🚀 Smart AI Upload"):
 
 # 8. SEARCH ENGINE
 st.markdown('<div class="card">', unsafe_allow_html=True)
-query = st.text_input("🔍 Search Technical Procedures (e.g. 'Collector')")
+query = st.text_input("🔍 Search Technical Procedures")
 st.markdown('</div>', unsafe_allow_html=True)
 
 if query and not df.empty:
     q_emb = embed_text(query, is_query=True)
-    # This part was crashing with KeyError; fixed via Database Auto-Repair
     df["score"] = df["Embedding"].apply(lambda x: cosine_sim(x, q_emb))
     results = df.sort_values(by="score", ascending=False).head(5)
-    
     results = results[results["score"] > 0.2]
 
     if not results.empty:
         for _, row in results.iterrows():
-            with st.container():
-                st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-                st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-                st.divider()
+            st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            st.divider()
     else:
-        st.warning("No matches found in database.")
+        st.warning("No matches found.")
