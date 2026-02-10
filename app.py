@@ -14,7 +14,7 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 # --------------------------------------------------
 # 2. 🔑 PUT YOUR API KEY HERE
 # --------------------------------------------------
-API_KEY = "PASTE_YOUR_REAL_GEMINI_API_KEY_HERE"
+API_KEY = "AIzaSyBPDKoUXeysMOQeex1_LBLXwL8IM7ZPCH0"
 genai.configure(api_key=API_KEY)
 
 MODEL_ID = "models/gemini-1.5-flash"
