@@ -17,7 +17,7 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 API_KEY = "AIzaSyBPDKoUXeysMOQeex1_LBLXwL8IM7ZPCH0"
 genai.configure(api_key=API_KEY)
 
-MODEL_ID = "models/gemini-1.5-flash"
+MODEL_ID = "gemini-1.0-pro"
 EMBED_MODEL = "models/embedding-001"
 model = genai.GenerativeModel(MODEL_ID)
 
