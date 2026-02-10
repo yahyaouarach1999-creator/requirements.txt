@@ -12,17 +12,18 @@ import google.generativeai as genai
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# 2. 🔑 PUT YOUR API KEY HERE
+# 2. GEMINI AI CONFIG (PUT YOUR KEY BELOW)
 # --------------------------------------------------
-API_KEY = "AIzaSyBPDKoUXeysMOQeex1_LBLXwL8IM7ZPCH0"
+API_KEY = "PASTE_YOUR_GEMINI_API_KEY_HERE"
 genai.configure(api_key=API_KEY)
 
-MODEL_ID = "gemini-1.0-pro"
+MODEL_ID = "gemini-1.5-flash-latest"
 EMBED_MODEL = "models/embedding-001"
+
 model = genai.GenerativeModel(MODEL_ID)
 
 # --------------------------------------------------
-# 3. UI STYLE
+# 3. PREMIUM UI
 # --------------------------------------------------
 st.markdown("""
 <style>
@@ -36,7 +37,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 4. DATABASE
+# 4. LOAD DATABASE (WITH EMBEDDINGS)
 # --------------------------------------------------
 def load_db():
     try:
@@ -65,9 +66,9 @@ def get_embedding(text, is_query=False):
         return ""
 
 # --------------------------------------------------
-# 6. HEADER
+# 6. HEADER + QUICK LINKS
 # --------------------------------------------------
-st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND</h2></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 cols = st.columns(5)
 platforms = [
@@ -85,26 +86,35 @@ for col, (label, btn, url) in zip(cols, platforms):
 st.divider()
 
 # --------------------------------------------------
-# 7. ADMIN UPLOAD
+# 7. ADMIN: PDF SOP INGESTION
 # --------------------------------------------------
-st.sidebar.title("⚙️ Management")
-if st.sidebar.checkbox("🚀 Implement New SOP"):
+st.sidebar.title("⚙️ SOP Management")
+
+if st.sidebar.checkbox("🚀 Upload New SOP PDF"):
     pdf_file = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
-    if pdf_file and st.sidebar.button("✨ Extract & Learn"):
-        with st.spinner("AI is analyzing..."):
+
+    if pdf_file and st.sidebar.button("✨ Extract & Learn SOP"):
+        with st.spinner("AI is extracting procedures..."):
             try:
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
 
-                prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO headers. Text: {raw_text[:8000]}"
-                response = model.generate_content(prompt)
+                prompt = f"""
+Extract procedures as CSV rows.
+Columns: System, Process, Instructions, Rationale.
+No headers. Text: {raw_text[:8000]}
+"""
 
+                response = model.generate_content(prompt, generation_config={"temperature": 0.2})
                 csv_data = response.text.replace("```csv", "").replace("```", "").strip()
-                new_data = pd.read_csv(io.StringIO(csv_data),
-                                       names=["System", "Process", "Instructions", "Rationale"],
-                                       header=None)
 
-                st.sidebar.info("Building AI search index...")
+                new_data = pd.read_csv(
+                    io.StringIO(csv_data),
+                    names=["System", "Process", "Instructions", "Rationale"],
+                    header=None
+                )
+
+                st.sidebar.info("Generating search embeddings...")
                 new_data["Embedding"] = new_data.apply(
                     lambda x: get_embedding(f"{x['System']} {x['Process']} {x['Instructions']}"),
                     axis=1
@@ -113,36 +123,42 @@ if st.sidebar.checkbox("🚀 Implement New SOP"):
                 final_df = pd.concat([df, new_data], ignore_index=True)
                 final_df.to_csv("sop_data.csv", index=False)
 
-                st.sidebar.success("Database Updated!")
+                st.sidebar.success(f"Added {len(new_data)} SOPs successfully!")
                 st.rerun()
+
             except Exception as e:
-                st.sidebar.error(f"Error: {e}")
+                st.sidebar.error(f"Error processing SOP: {e}")
 
 # --------------------------------------------------
-# 8. SEARCH
+# 8. SEARCH ENGINE
 # --------------------------------------------------
-query = st.text_input("🔍 Search Technical Procedures")
+st.subheader("🔍 Intelligent SOP Search")
+query = st.text_input("Search technical procedures in plain English")
+
+def cosine_sim(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
 if query and not df.empty:
     q_emb = get_embedding(query, is_query=True)
 
-    def calculate_sim(row_emb):
+    def calc_score(row_emb):
         if not row_emb or not q_emb:
             return 0
         a, b = np.array(json.loads(row_emb)), np.array(json.loads(q_emb))
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
+        return cosine_sim(a, b)
 
-    df["score"] = df["Embedding"].apply(calculate_sim)
-    results = df.sort_values(by="score", ascending=False).head(5)
-    results = results[results["score"] > 0.2]
+    df["score"] = df["Embedding"].apply(calc_score)
+    results = df.sort_values("score", ascending=False).head(5)
+    results = results[results["score"] > 0.25]
 
     if not results.empty:
         for _, row in results.iterrows():
             st.markdown(f"### 📌 {row['System']} | {row['Process']}")
             st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+            st.caption(f"**Rationale:** {row['Rationale']}")
             st.divider()
     else:
-        st.warning("No matches found.")
-
-elif not query and df.empty:
-    st.info("Upload an SOP in the sidebar to build the knowledge base.")
+        st.warning("No strong matches found.")
+else:
+    if df.empty:
+        st.info("Upload an SOP PDF from the sidebar to build the knowledge base.")
