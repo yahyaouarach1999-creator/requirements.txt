@@ -12,14 +12,13 @@ import google.generativeai as genai
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# 2. AI CONFIG (FREE TIER SAFE)
+# 2. 🔑 PUT YOUR API KEY HERE
 # --------------------------------------------------
-API_KEY = "PASTE_YOUR_KEY_HERE"  # or use st.secrets
+API_KEY = "PASTE_YOUR_REAL_GEMINI_API_KEY_HERE"
 genai.configure(api_key=API_KEY)
 
-MODEL_ID = "models/gemini-1.5-flash"   # ✅ FIXED
+MODEL_ID = "models/gemini-1.5-flash"
 EMBED_MODEL = "models/embedding-001"
-
 model = genai.GenerativeModel(MODEL_ID)
 
 # --------------------------------------------------
@@ -92,7 +91,7 @@ st.sidebar.title("⚙️ Management")
 if st.sidebar.checkbox("🚀 Implement New SOP"):
     pdf_file = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
     if pdf_file and st.sidebar.button("✨ Extract & Learn"):
-        with st.spinner("AI is analyzing (Free Tier)..."):
+        with st.spinner("AI is analyzing..."):
             try:
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
@@ -105,7 +104,7 @@ if st.sidebar.checkbox("🚀 Implement New SOP"):
                                        names=["System", "Process", "Instructions", "Rationale"],
                                        header=None)
 
-                st.sidebar.info("Building search index...")
+                st.sidebar.info("Building AI search index...")
                 new_data["Embedding"] = new_data.apply(
                     lambda x: get_embedding(f"{x['System']} {x['Process']} {x['Instructions']}"),
                     axis=1
