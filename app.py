@@ -167,4 +167,29 @@ for _, row in results.iterrows():
     st.caption(f"**Rationale:** {row['Rationale']}")
     st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
 
-    subject = urllib.parse.quote(f"SOP
+    subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
+    body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
+    st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}")
+    st.markdown("---")
+
+# --------------------------------------------------
+# 11. AI COPILOT
+# --------------------------------------------------
+st.divider()
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.subheader("🧠 Arledge AI Copilot")
+
+question = st.text_area("Ask an operational question")
+
+if st.button("Get AI Guidance") and question:
+    with st.spinner("Consulting operations intelligence..."):
+        context = "\n\n".join(results["Instructions"].tolist())
+        prompt = f"""Answer using ONLY this SOP data:\n{context}\nQUESTION: {question}"""
+        try:
+            answer = model.generate_content(prompt)
+            st.write(answer.text)
+        except Exception as e:
+            st.error("AI system unavailable")
+            st.exception(e)
+
+st.markdown('</div>', unsafe_allow_html=True)
