@@ -85,7 +85,7 @@ elif auth_status is None:
     st.warning("Enter your credentials")
     st.stop()
 
-authenticator.logout("Logout", "sidebar")
+authenticator.logout(location="sidebar")
 st.sidebar.success(f"Welcome {name}")
 
 # --------------------------------------------------
