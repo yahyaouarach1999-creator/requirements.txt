@@ -123,14 +123,36 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 def cosine_sim(a,b): return np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b))
 
-@st.cache_resource
-def embed_texts(texts):
-    return [genai.embed_content(model="models/embedding-001", content=t)["embedding"] for t in texts]
+# --------------------------------------------------
+# SAFE EMBEDDINGS (BATCHED + LAZY)
+# --------------------------------------------------
+def cosine_sim(a, b):
+    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-if "embeddings" not in st.session_state and len(df) > 0:
-    st.session_state.embeddings = embed_texts(df["Instructions"].tolist())
+@st.cache_resource(show_spinner=False)
+def embed_batch(text_batch):
+    try:
+        return [
+            genai.embed_content(
+                model="models/embedding-001",
+                content=t[:3000]  # limit size per request
+            )["embedding"]
+            for t in text_batch
+        ]
+    except Exception as e:
+        st.warning("Embedding batch failed — skipping some entries")
+        return []
 
-results = pd.DataFrame()
+def build_embeddings(data, batch_size=10):
+    all_embeddings = []
+    texts = data["Instructions"].tolist()
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i+batch_size]
+        embs = embed_batch(batch)
+        all_embeddings.extend(embs)
+
+    return all_embeddings
 
 if query and len(df) > 0:
     q_embed = genai.embed_content(model="models/embedding-001", content=query)["embedding"]
