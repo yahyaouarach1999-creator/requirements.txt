@@ -1,8 +1,8 @@
 credentials:
   usernames:
     admin:
-      name: Admin User
-      password: "$2b$12$KIXID5uHqQz0r3Y0hFvA3e0eH7GkK7dF0nGJj7lPqv0rXhF3oR9aW"  # pre-hashed "admin123"
+      name: Yahya Ouarach
+      password: "$2b$12$REPLACE_THIS_WITH_HASH"
 
 cookie:
   name: arledge_cookie
