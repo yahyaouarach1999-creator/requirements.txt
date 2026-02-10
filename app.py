@@ -14,7 +14,7 @@ API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
 genai.configure(api_key=API_KEY)
 
 # On Free Tier, 'gemini-1.5-flash' is the most stable string
-MODEL_ID = 'gemini-1.5-flash'
+MODEL_ID = 'MODEL_ID = 'models/gemini-1.5-flash'   ✅'
 EMBED_MODEL = "models/embedding-001"
 
 # 3. PREMIUM UI (Icons Restored)
