@@ -4,7 +4,7 @@ import numpy as np
 import io
 import json
 from PyPDF2 import PdfReader
-import google.generativeai as genai
+from google import genai
 
 # --------------------------------------------------
 # 1. PAGE CONFIG
@@ -12,15 +12,13 @@ import google.generativeai as genai
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# 2. GEMINI AI CONFIG (PUT YOUR KEY BELOW)
+# 2. GEMINI AI CONFIG (NEW SDK)
 # --------------------------------------------------
-API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
-genai.configure(api_key=API_KEY)
+API_KEY = "PASTE_YOUR_REAL_GEMINI_API_KEY_HERE"
+client = genai.Client(api_key=API_KEY)
 
-MODEL_ID = "gemini-1.5-flash-latest"
-EMBED_MODEL = "models/embedding-001"
-
-model = genai.GenerativeModel(MODEL_ID)
+CHAT_MODEL = "gemini-1.5-flash"
+EMBED_MODEL = "text-embedding-004"
 
 # --------------------------------------------------
 # 3. PREMIUM UI
@@ -37,7 +35,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 4. LOAD DATABASE (WITH EMBEDDINGS)
+# 4. LOAD DATABASE
 # --------------------------------------------------
 def load_db():
     try:
@@ -51,46 +49,29 @@ def load_db():
 df = load_db()
 
 # --------------------------------------------------
-# 5. EMBEDDING FUNCTION
+# 5. EMBEDDINGS (NEW API)
 # --------------------------------------------------
-def get_embedding(text, is_query=False):
+def get_embedding(text):
     try:
-        task = "retrieval_query" if is_query else "retrieval_document"
-        res = genai.embed_content(
+        response = client.models.embed_content(
             model=EMBED_MODEL,
-            content=text[:3000],
-            task_type=task
+            contents=text[:3000]
         )
-        return json.dumps(res["embedding"])
+        return json.dumps(response.embeddings[0].values)
     except:
         return ""
 
 # --------------------------------------------------
-# 6. HEADER + QUICK LINKS
+# 6. HEADER
 # --------------------------------------------------
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
-cols = st.columns(5)
-platforms = [
-    ("SALESFORCE", "🚀 CRM", "https://arrowcrm.lightning.force.com/"),
-    ("SWB ORACLE", "💾 Orders", "https://acswb.arrow.com/Swb/"),
-    ("ETQ PORTAL", "📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal"),
-    ("SUPPORT", "🛠️ Tickets", "https://arrow.service-now.com/myconnect"),
-    ("SOS HELP", "🆘 Contact", "mailto:yahya.ouarach@arrow.com")
-]
-for col, (label, btn, url) in zip(cols, platforms):
-    with col:
-        st.markdown(f'<div class="nano-tile"><div class="nano-label">{label}</div></div>', unsafe_allow_html=True)
-        st.link_button(btn, url, use_container_width=True)
-
-st.divider()
-
 # --------------------------------------------------
-# 7. ADMIN: PDF SOP INGESTION
+# 7. ADMIN PDF INGESTION
 # --------------------------------------------------
 st.sidebar.title("⚙️ SOP Management")
 
-if st.sidebar.checkbox("🚀 Upload New SOP PDF"):
+if st.sidebar.checkbox("🚀 Upload SOP PDF"):
     pdf_file = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
 
     if pdf_file and st.sidebar.button("✨ Extract & Learn SOP"):
@@ -105,7 +86,11 @@ Columns: System, Process, Instructions, Rationale.
 No headers. Text: {raw_text[:8000]}
 """
 
-                response = model.generate_content(prompt, generation_config={"temperature": 0.2})
+                response = client.models.generate_content(
+                    model=CHAT_MODEL,
+                    contents=prompt
+                )
+
                 csv_data = response.text.replace("```csv", "").replace("```", "").strip()
 
                 new_data = pd.read_csv(
@@ -114,7 +99,7 @@ No headers. Text: {raw_text[:8000]}
                     header=None
                 )
 
-                st.sidebar.info("Generating search embeddings...")
+                st.sidebar.info("Generating embeddings...")
                 new_data["Embedding"] = new_data.apply(
                     lambda x: get_embedding(f"{x['System']} {x['Process']} {x['Instructions']}"),
                     axis=1
@@ -127,19 +112,19 @@ No headers. Text: {raw_text[:8000]}
                 st.rerun()
 
             except Exception as e:
-                st.sidebar.error(f"Error processing SOP: {e}")
+                st.sidebar.error(f"Error: {e}")
 
 # --------------------------------------------------
-# 8. SEARCH ENGINE
+# 8. SEARCH
 # --------------------------------------------------
 st.subheader("🔍 Intelligent SOP Search")
-query = st.text_input("Search technical procedures in plain English")
+query = st.text_input("Search technical procedures")
 
 def cosine_sim(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
 if query and not df.empty:
-    q_emb = get_embedding(query, is_query=True)
+    q_emb = get_embedding(query)
 
     def calc_score(row_emb):
         if not row_emb or not q_emb:
