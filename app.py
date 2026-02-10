@@ -4,7 +4,7 @@ import numpy as np
 import io
 import json
 from PyPDF2 import PdfReader
-from google import genai
+import google.generativeai as genai
 
 # --------------------------------------------------
 # 1. PAGE CONFIG
@@ -12,24 +12,22 @@ from google import genai
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# 2. GEMINI AI CONFIG (NEW SDK)
+# 2. GEMINI AI CONFIG (STABLE SDK)
 # --------------------------------------------------
 API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
-client = genai.Client(api_key=API_KEY)
+genai.configure(api_key=API_KEY)
 
-CHAT_MODEL = "gemini-1.5-flash"
-EMBED_MODEL = "text-embedding-004"
+CHAT_MODEL = "gemini-1.0-pro"  # Most widely supported
+EMBED_MODEL = "models/embedding-001"
 
 # --------------------------------------------------
-# 3. PREMIUM UI
+# 3. UI STYLE
 # --------------------------------------------------
 st.markdown("""
 <style>
 .stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
 .card {background: rgba(255,255,255,0.05); border-radius: 14px; padding: 18px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.1);}
 .main-header {text-align:center; padding:12px; border-bottom:2px solid #f97316; margin-bottom:20px;}
-.nano-tile {background: rgba(255,255,255,0.05); border-radius:10px; padding:8px; text-align:center;}
-.nano-label {font-size:0.65rem; font-weight:700; color:#94a3b8; text-transform:uppercase;}
 .instruction-box {white-space: pre-wrap; font-family: monospace; background: #0b1220; color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6px;}
 </style>
 """, unsafe_allow_html=True)
@@ -49,15 +47,16 @@ def load_db():
 df = load_db()
 
 # --------------------------------------------------
-# 5. EMBEDDINGS (NEW API)
+# 5. EMBEDDING FUNCTION
 # --------------------------------------------------
 def get_embedding(text):
     try:
-        response = client.models.embed_content(
+        result = genai.embed_content(
             model=EMBED_MODEL,
-            contents=text[:3000]
+            content=text[:3000],
+            task_type="retrieval_document"
         )
-        return json.dumps(response.embeddings[0].values)
+        return json.dumps(result["embedding"])
     except:
         return ""
 
@@ -67,7 +66,7 @@ def get_embedding(text):
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 7. ADMIN PDF INGESTION
+# 7. PDF INGESTION
 # --------------------------------------------------
 st.sidebar.title("⚙️ SOP Management")
 
@@ -80,16 +79,13 @@ if st.sidebar.checkbox("🚀 Upload SOP PDF"):
                 reader = PdfReader(pdf_file)
                 raw_text = "".join([p.extract_text() or "" for p in reader.pages])
 
+                model = genai.GenerativeModel(CHAT_MODEL)
                 prompt = f"""
 Extract procedures as CSV rows.
 Columns: System, Process, Instructions, Rationale.
 No headers. Text: {raw_text[:8000]}
 """
-
-                response = client.models.generate_content(
-                    model=CHAT_MODEL,
-                    contents=prompt
-                )
+                response = model.generate_content(prompt)
 
                 csv_data = response.text.replace("```csv", "").replace("```", "").strip()
 
@@ -124,12 +120,17 @@ def cosine_sim(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
 
 if query and not df.empty:
-    q_emb = get_embedding(query)
+    q_emb = genai.embed_content(
+        model=EMBED_MODEL,
+        content=query,
+        task_type="retrieval_query"
+    )["embedding"]
 
     def calc_score(row_emb):
-        if not row_emb or not q_emb:
+        if not row_emb:
             return 0
-        a, b = np.array(json.loads(row_emb)), np.array(json.loads(q_emb))
+        a = np.array(json.loads(row_emb))
+        b = np.array(q_emb)
         return cosine_sim(a, b)
 
     df["score"] = df["Embedding"].apply(calc_score)
