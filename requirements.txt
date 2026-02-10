@@ -2,4 +2,4 @@ streamlit
 pandas
 numpy
 PyPDF2
-google-generativeai==0.3.2
+gemini-1.5-flash
