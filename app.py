@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
-import time
+import os
 import yaml
 import urllib.parse
 from datetime import datetime
@@ -20,51 +20,20 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 # --------------------------------------------------
 st.markdown("""
 <style>
-.stApp {
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: #f1f5f9;
-}
-.block-container { padding-top: 1rem; }
-.card {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 14px;
-}
-.main-header {
-    text-align:center;
-    padding:12px;
-    border-bottom:2px solid #f97316;
-    margin-bottom:20px;
-}
-.nano-tile {
-    background: rgba(255,255,255,0.05);
-    border-radius:10px;
-    padding:8px;
-    text-align:center;
-}
-.nano-label {
-    font-size:0.65rem;
-    font-weight:700;
-    color:#94a3b8;
-    text-transform:uppercase;
-}
-.instruction-box {
-    white-space: pre-wrap;
-    font-family: monospace;
-    background: #0b1220;
-    color: #f8fafc;
-    padding: 15px;
-    border-left: 4px solid #f97316;
-    border-radius: 6px;
-}
+.stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
+.block-container {padding-top: 1rem;}
+.card {background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
+border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; margin-bottom: 14px;}
+.main-header {text-align:center; padding:12px; border-bottom:2px solid #f97316; margin-bottom:20px;}
+.nano-tile {background: rgba(255,255,255,0.05); border-radius:10px; padding:8px; text-align:center;}
+.nano-label {font-size:0.65rem; font-weight:700; color:#94a3b8; text-transform:uppercase;}
+.instruction-box {white-space: pre-wrap; font-family: monospace; background: #0b1220;
+color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6px;}
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 3. AUTHENTICATION (Enterprise Style)
+# 3. AUTHENTICATION (FIXED FOR NEW VERSION)
 # --------------------------------------------------
 with open("users.yaml") as file:
     config = yaml.safe_load(file)
@@ -76,23 +45,25 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-name, auth_status, username = authenticator.login(location="main")
+authenticator.login(location="main")
 
-if auth_status is False:
-    st.error("Invalid credentials")
+if st.session_state["authentication_status"] is False:
+    st.error("Invalid username or password")
     st.stop()
-elif auth_status is None:
-    st.warning("Enter your credentials")
+elif st.session_state["authentication_status"] is None:
+    st.warning("Please enter your credentials")
     st.stop()
+
+name = st.session_state["name"]
+username = st.session_state["username"]
 
 authenticator.logout(location="sidebar")
 st.sidebar.success(f"Welcome {name}")
 
 # --------------------------------------------------
-# 4. AI CONFIG
+# 4. AI CONFIG (SECURE)
 # --------------------------------------------------
-API_KEY = "YOUR_GEMINI_KEY_HERE"
-genai.configure(api_key=API_KEY)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # --------------------------------------------------
@@ -127,7 +98,7 @@ st.sidebar.metric("Processes", df["Process"].nunique())
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 8. NAVIGATION TILES
+# 8. NAVIGATION
 # --------------------------------------------------
 cols = st.columns(5)
 links = [
@@ -182,17 +153,18 @@ st.markdown('</div>', unsafe_allow_html=True)
 def cosine_sim(a,b): return np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b))
 
 @st.cache_resource
-def build_embeddings(texts):
+def embed_texts(texts):
     return [genai.embed_content(model="models/embedding-001", content=t)["embedding"] for t in texts]
 
-if "embedding" not in df.columns and len(df) > 0:
-    df["embedding"] = build_embeddings(df["Instructions"])
+if "embeddings" not in st.session_state and len(df) > 0:
+    st.session_state.embeddings = embed_texts(df["Instructions"].tolist())
 
 results = pd.DataFrame()
 
 if query and len(df) > 0:
     q_embed = genai.embed_content(model="models/embedding-001", content=query)["embedding"]
-    df["score"] = df["embedding"].apply(lambda x: cosine_sim(x, q_embed))
+    scores = [cosine_sim(e, q_embed) for e in st.session_state.embeddings]
+    df["score"] = scores
     results = df.sort_values("score", ascending=False).head(5)
 
 for _, row in results.iterrows():
@@ -221,7 +193,8 @@ if st.button("Get AI Guidance") and question:
         try:
             answer = model.generate_content(prompt)
             st.write(answer.text)
-        except:
+        except Exception as e:
             st.error("AI system unavailable")
+            st.exception(e)
 
 st.markdown('</div>', unsafe_allow_html=True)
