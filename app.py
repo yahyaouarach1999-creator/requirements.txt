@@ -32,9 +32,11 @@ color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6p
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# 3. AI CONFIG
+# 3. AI CONFIG (Fixed Model Strings)
 # --------------------------------------------------
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Use your provided key directly or via secrets
+API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII" 
+genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # --------------------------------------------------
@@ -98,25 +100,32 @@ for col, (label, btn, url) in zip(cols, links):
 st.divider()
 
 # --------------------------------------------------
-# 9. EMBEDDING FUNCTIONS (STORED)
+# 9. EMBEDDING FUNCTIONS (Fixed for Retrieval)
 # --------------------------------------------------
-def embed_text(text):
+def embed_text(text, is_query=False):
     try:
+        # task_type is MANDATORY for Gemini embeddings
+        t_type = "retrieval_query" if is_query else "retrieval_document"
         emb = genai.embed_content(
             model="models/embedding-001",
-            content=text[:3000]
+            content=text[:3000],
+            task_type=t_type
         )["embedding"]
         return json.dumps(emb)
-    except:
+    except Exception:
         return ""
 
 def cosine_sim(a, b):
-    a = np.array(json.loads(a))
-    b = np.array(json.loads(b))
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+    try:
+        if not a or not b: return -1
+        vec_a = np.array(json.loads(a))
+        vec_b = np.array(json.loads(b))
+        return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b) + 1e-10)
+    except:
+        return -1
 
 # --------------------------------------------------
-# 10. ADMIN AI PDF INGESTION
+# 10. ADMIN AI PDF INGESTION (Bulletproof CSV)
 # --------------------------------------------------
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
@@ -125,79 +134,98 @@ if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
         with st.spinner("AI is analyzing the document..."):
             try:
                 raw_text = extract_pdf_text(pdf)
-                prompt = f"""Extract SOP steps into CSV rows.
-Columns: System, Process, Instructions, Rationale.
-TEXT: {raw_text[:8000]}"""
+                prompt = f"""Extract SOP steps. 
+                Output ONLY valid CSV rows. NO MARKDOWN. NO HEADERS.
+                Columns: System, Process, Instructions, Rationale.
+                TEXT: {raw_text[:8000]}"""
+                
                 response = model.generate_content(prompt)
                 cleaned = response.text.replace("```csv","").replace("```","").strip()
+                
                 new_rows = pd.read_csv(io.StringIO(cleaned),
-                                       names=["System","Process","Instructions","Rationale"])
+                                       names=["System","Process","Instructions","Rationale"],
+                                       header=None)
+                
                 new_rows["Version"] = 1
-                new_rows["Last_Updated"] = datetime.now()
+                new_rows["Last_Updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-                # 🔥 Generate embeddings ONCE and store
-                st.sidebar.info("Generating embeddings for new SOPs...")
-                new_rows["Embedding"] = new_rows["Instructions"].apply(embed_text)
+                st.sidebar.info("Generating AI Index...")
+                # Combined context for better search
+                new_rows["Embedding"] = (new_rows["Process"] + " " + new_rows["Instructions"]).apply(lambda x: embed_text(x, is_query=False))
 
                 df_updated = pd.concat([df, new_rows], ignore_index=True)
                 save_data(df_updated)
 
-                st.sidebar.success(f"Added {len(new_rows)} SOPs with AI index!")
+                st.sidebar.success(f"Added {len(new_rows)} SOPs!")
                 st.cache_data.clear()
                 st.rerun()
             except Exception as e:
-                st.sidebar.error("AI processing failed")
-                st.sidebar.exception(e)
+                st.sidebar.error(f"AI Error: {e}")
 
 # --------------------------------------------------
-# 11. SEARCH
+# 11. SEARCH (Ranked by Relevance)
 # --------------------------------------------------
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader("🔍 Intelligent SOP Search")
-query = st.text_input("Search procedures in plain English")
+query = st.text_input("Search procedures in plain English (e.g., 'How do I handle dropships?')")
 st.markdown('</div>', unsafe_allow_html=True)
 
 results = pd.DataFrame()
 
 if query and len(df) > 0:
     try:
-        q_embed = embed_text(query)
-        df["score"] = df["Embedding"].apply(
-            lambda x: cosine_sim(x, q_embed) if x else -1
-        )
+        q_embed = embed_text(query, is_query=True)
+        # Apply similarity scoring
+        df["score"] = df["Embedding"].apply(lambda x: cosine_sim(x, q_embed))
         results = df.sort_values("score", ascending=False).head(5)
+        # Filter out low-relevance matches
+        results = results[results["score"] > 0.3]
     except Exception as e:
-        st.error("Search temporarily unavailable")
-        st.exception(e)
+        st.error("Search index busy. Try again in a moment.")
 
-for _, row in results.iterrows():
-    st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-    st.caption(f"**Rationale:** {row['Rationale']}")
-    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+if not results.empty:
+    for _, row in results.iterrows():
+        with st.container():
+            st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+            st.caption(f"**Rationale:** {row['Rationale']}")
+            st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
 
-    subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
-    body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
-    st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}")
-    st.markdown("---")
+            subject = urllib.parse.quote(f"SOP Issue: {row['Process']}")
+            mailto = f"mailto:yahya.ouarach@arrow.com?subject={subject}"
+            st.link_button("🚩 Report Issue", mailto)
+            st.markdown("---")
+elif query:
+    st.warning("No matching procedures found. Try different keywords.")
 
 # --------------------------------------------------
-# 12. AI COPILOT
+# 12. AI COPILOT (RAG Implementation)
 # --------------------------------------------------
+
 st.divider()
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader("🧠 Arledge AI Copilot")
 
-question = st.text_area("Ask an operational question")
+question = st.text_area("Ask an operational question based on the SOPs above")
 
 if st.button("Get AI Guidance") and question:
-    with st.spinner("Consulting operations intelligence..."):
-        context = "\n\n".join(results["Instructions"].tolist())
-        prompt = f"""Answer using ONLY this SOP data:\n{context}\nQUESTION: {question}"""
-        try:
-            answer = model.generate_content(prompt)
-            st.write(answer.text)
-        except Exception as e:
-            st.error("AI system unavailable")
-            st.exception(e)
+    if not results.empty:
+        with st.spinner("Consulting operations intelligence..."):
+            # Provide the search results as context to the AI
+            context = "\n\n".join([f"Process: {r['Process']}\nInstructions: {r['Instructions']}" for _, r in results.iterrows()])
+            prompt = f"""You are the Arledge Ops Expert. Answer the question using ONLY the context provided.
+            If the answer isn't in the context, say you don't know.
+            CONTEXT:
+            {context}
+            
+            QUESTION: {question}"""
+            
+            try:
+                answer = model.generate_content(prompt)
+                st.markdown("#### AI Response:")
+                st.write(answer.text)
+            except Exception as e:
+                st.error("AI Copilot is offline.")
+    else:
+        st.info("Please search for a procedure first so the Copilot has context to read.")
 
 st.markdown('</div>', unsafe_allow_html=True)
