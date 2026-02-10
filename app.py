@@ -8,15 +8,14 @@ import urllib.parse
 from datetime import datetime
 from PyPDF2 import PdfReader
 import google.generativeai as genai
-import streamlit_authenticator as stauth
 
 # --------------------------------------------------
-# PAGE CONFIG
+# 1. PAGE CONFIG
 # --------------------------------------------------
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
 # --------------------------------------------------
-# PREMIUM UI
+# 2. PREMIUM UI THEME
 # --------------------------------------------------
 st.markdown("""
 <style>
@@ -33,39 +32,13 @@ color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6p
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
-# AUTHENTICATION
-# --------------------------------------------------
-with open("users.yaml") as file:
-    config = yaml.safe_load(file)
-
-authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
-)
-
-authenticator.login(location="main")
-
-if st.session_state["authentication_status"] is False:
-    st.error("Invalid username or password")
-    st.stop()
-elif st.session_state["authentication_status"] is None:
-    st.warning("Please enter your credentials")
-    st.stop()
-
-name = st.session_state["name"]
-authenticator.logout(location="sidebar")
-st.sidebar.success(f"Welcome {name}")
-
-# --------------------------------------------------
-# AI CONFIG
+# 3. AI CONFIG (SECURE)
 # --------------------------------------------------
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # --------------------------------------------------
-# DATA LOADING
+# 4. DATA FUNCTIONS
 # --------------------------------------------------
 @st.cache_data(ttl=3600)
 def load_data():
@@ -83,7 +56,7 @@ def extract_pdf_text(uploaded_file):
     return "".join(page.extract_text() or "" for page in reader.pages)
 
 # --------------------------------------------------
-# SIDEBAR METRICS
+# 5. SIDEBAR DASHBOARD
 # --------------------------------------------------
 st.sidebar.markdown("### 📊 System Metrics")
 st.sidebar.metric("Total SOPs", len(df))
@@ -91,12 +64,12 @@ st.sidebar.metric("Systems", df["System"].nunique())
 st.sidebar.metric("Processes", df["Process"].nunique())
 
 # --------------------------------------------------
-# HEADER
+# 6. HEADER
 # --------------------------------------------------
 st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
 
 # --------------------------------------------------
-# NAVIGATION LINKS
+# 7. NAVIGATION
 # --------------------------------------------------
 cols = st.columns(5)
 links = [
@@ -114,27 +87,34 @@ for col, (label, btn, url) in zip(cols, links):
 st.divider()
 
 # --------------------------------------------------
-# AI PDF INGESTION
+# 8. ADMIN AI PDF INGESTION
 # --------------------------------------------------
 st.sidebar.title("⚙️ Admin Console")
 if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
     pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
     if pdf and st.sidebar.button("✨ Extract Procedures"):
         with st.spinner("AI is analyzing the document..."):
-            raw_text = extract_pdf_text(pdf)
-            prompt = f"Extract SOP steps into CSV rows. Columns: System, Process, Instructions, Rationale. TEXT: {raw_text[:8000]}"
-            response = model.generate_content(prompt)
-            cleaned = response.text.replace("```csv","").replace("```","").strip()
-            new_rows = pd.read_csv(io.StringIO(cleaned), names=["System","Process","Instructions","Rationale"])
-            new_rows["Version"] = 1
-            new_rows["Last_Updated"] = datetime.now()
-            pd.concat([df, new_rows], ignore_index=True).to_csv("sop_data.csv", index=False)
-            st.sidebar.success(f"Added {len(new_rows)} SOPs")
-            st.cache_data.clear()
-            st.rerun()
+            try:
+                raw_text = extract_pdf_text(pdf)
+                prompt = f"""Extract SOP steps into CSV rows.
+Columns: System, Process, Instructions, Rationale.
+TEXT: {raw_text[:8000]}"""
+                response = model.generate_content(prompt)
+                cleaned = response.text.replace("```csv","").replace("```","").strip()
+                new_rows = pd.read_csv(io.StringIO(cleaned), names=["System","Process","Instructions","Rationale"])
+                new_rows["Version"] = 1
+                new_rows["Last_Updated"] = datetime.now()
+                df_updated = pd.concat([df, new_rows], ignore_index=True)
+                df_updated.to_csv("sop_data.csv", index=False)
+                st.sidebar.success(f"Added {len(new_rows)} SOPs")
+                st.cache_data.clear()
+                st.rerun()
+            except Exception as e:
+                st.sidebar.error("AI processing failed")
+                st.sidebar.exception(e)
 
 # --------------------------------------------------
-# SEMANTIC SEARCH
+# 9. SEMANTIC SEARCH
 # --------------------------------------------------
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.subheader("🔍 Intelligent SOP Search")
@@ -150,20 +130,26 @@ def embed_texts(texts):
 if "embeddings" not in st.session_state and len(df) > 0:
     st.session_state.embeddings = embed_texts(df["Instructions"].tolist())
 
+results = pd.DataFrame()
+
 if query and len(df) > 0:
     q_embed = genai.embed_content(model="models/embedding-001", content=query)["embedding"]
     scores = [cosine_sim(e, q_embed) for e in st.session_state.embeddings]
     df["score"] = scores
     results = df.sort_values("score", ascending=False).head(5)
 
-    for _, row in results.iterrows():
-        st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-        st.caption(f"**Rationale:** {row['Rationale']}")
-        st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-        st.markdown("---")
+for _, row in results.iterrows():
+    st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+    st.caption(f"**Rationale:** {row['Rationale']}")
+    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+
+    subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
+    body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
+    st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}")
+    st.markdown("---")
 
 # --------------------------------------------------
-# AI COPILOT
+# 10. AI COPILOT
 # --------------------------------------------------
 st.divider()
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -172,9 +158,14 @@ st.subheader("🧠 Arledge AI Copilot")
 question = st.text_area("Ask an operational question")
 
 if st.button("Get AI Guidance") and question:
-    context = "\n\n".join(df["Instructions"].head(5).tolist())
-    prompt = f"Answer using ONLY this SOP data:\n{context}\nQUESTION: {question}"
-    answer = model.generate_content(prompt)
-    st.write(answer.text)
+    with st.spinner("Consulting operations intelligence..."):
+        context = "\n\n".join(results["Instructions"].tolist())
+        prompt = f"""Answer using ONLY this SOP data:\n{context}\nQUESTION: {question}"""
+        try:
+            answer = model.generate_content(prompt)
+            st.write(answer.text)
+        except Exception as e:
+            st.error("AI system unavailable")
+            st.exception(e)
 
 st.markdown('</div>', unsafe_allow_html=True)
