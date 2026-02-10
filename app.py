@@ -1,110 +1,91 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import io
-import json
+import os
 from PyPDF2 import PdfReader
 import google.generativeai as genai
 
-# --------------------------------------------------
-# GEMINI CONFIG (NEW PROJECT / 2026 STABLE)
-# --------------------------------------------------
+# 1. PAGE CONFIG
+st.set_page_config(page_title="Arledge Manual Command", layout="wide", page_icon="🏹")
+
+# 2. AI CONFIG (For Extraction Only)
 API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
 genai.configure(api_key=API_KEY)
-
-# Change: Use 'gemini-flash-latest' instead of 'gemini-1.5-flash'
-# This is the industry-standard way to avoid the 404 for new accounts.
+# Using the most stable 2026 alias for text generation
 MODEL_ID = 'gemini-flash-latest' 
-EMBED_MODEL = "models/embedding-001"
 
-# --------------------------------------------------
-# HELPER: LIST AVAILABLE MODELS (FOR DEBUGGING)
-# --------------------------------------------------
-def check_models():
-    try:
-        models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        return models
-    except:
-        return ["Error connecting to API"]
+# 3. UI STYLE
+st.markdown("""
+<style>
+    .stApp {background: #0f172a; color: #f1f5f9;}
+    .sop-card {background: #1e293b; padding: 20px; border-radius: 10px; border-left: 5px solid #f97316; margin-bottom: 20px;}
+    .system-tag {background: #f97316; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;}
+</style>
+""", unsafe_allow_html=True)
 
-# --------------------------------------------------
-# DATA LOGIC
-# --------------------------------------------------
-def load_db():
-    try:
-        df = pd.read_csv("sop_data.csv")
-        return df.fillna("")
-    except:
-        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "Embedding"])
+# 4. DATA ENGINE (Manual CSV)
+def load_data():
+    if os.path.exists("sop_manual.csv"):
+        return pd.read_csv("sop_manual.csv").fillna("")
+    return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale"])
 
-df = load_db()
+df = load_data()
 
-# --------------------------------------------------
-# APP LAYOUT
-# --------------------------------------------------
-st.title("🏹 Arledge Operational Command")
+# 5. HEADER
+st.title("🏹 ARLEDGE MANUAL COMMAND")
+st.caption("Failsafe Edition: Keyword Search Enabled | No Embedding Dependencies")
 
+# 6. SIDEBAR: PDF EXTRACTION
 with st.sidebar:
-    st.header("⚙️ System Status")
-    available = check_models()
+    st.header("📋 Data Management")
+    uploaded_file = st.file_uploader("Upload SOP PDF", type="pdf")
     
-    # This will help us see if your key has specific model permissions
-    st.write(f"**Connected Model:** {MODEL_ID}")
-    with st.expander("Show all permitted models"):
-        st.write(available)
-
-    st.divider()
-    
-    pdf_file = st.file_uploader("Upload New SOP PDF", type="pdf")
-    if pdf_file and st.button("🚀 Process SOP"):
-        with st.spinner("AI is extracting data..."):
+    if uploaded_file and st.button("Extract to Manual DB"):
+        with st.spinner("AI is reading and formatting..."):
             try:
-                reader = PdfReader(pdf_file)
+                reader = PdfReader(uploaded_file)
                 text = "".join([p.extract_text() for p in reader.pages])
                 
-                # Re-initialize with the latest alias
                 model = genai.GenerativeModel(MODEL_ID)
-                prompt = f"Extract procedures as CSV (System, Process, Instructions, Rationale). No header. Text: {text[:8000]}"
+                prompt = f"Convert this SOP into CSV. Columns: System, Process, Instructions, Rationale. NO headers. Text: {text[:8000]}"
                 
                 response = model.generate_content(prompt)
+                csv_clean = response.text.replace("```csv", "").replace("```", "").strip()
                 
-                # Handling empty or blocked responses
-                if not response.candidates:
-                    st.error("Model failed to generate content. Try a shorter PDF.")
-                else:
-                    csv_data = response.text.replace("```csv", "").replace("```", "").strip()
-                    new_data = pd.read_csv(io.StringIO(csv_data), names=["System", "Process", "Instructions", "Rationale"], header=None)
-                    
-                    # Embedding logic
-                    st.info("Generating Search Vectors...")
-                    new_data["Embedding"] = new_data.apply(
-                        lambda x: json.dumps(genai.embed_content(model=EMBED_MODEL, content=f"{x['System']} {x['Process']}", task_type="retrieval_document")['embedding']), 
-                        axis=1
-                    )
-                    
-                    final_df = pd.concat([df, new_data], ignore_index=True)
-                    final_df.to_csv("sop_data.csv", index=False)
-                    st.success("Database Rebuilt!")
-                    st.rerun()
+                new_df = pd.read_csv(io.StringIO(csv_clean), names=["System", "Process", "Instructions", "Rationale"], header=None)
+                
+                # Append and Save
+                df = pd.concat([df, new_df], ignore_index=True)
+                df.to_csv("sop_manual.csv", index=False)
+                st.success("Manual Database Updated!")
+                st.rerun()
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Extraction Error: {e}")
 
-# --------------------------------------------------
-# SEARCH
-# --------------------------------------------------
-query = st.text_input("🔍 Search Technical Procedures")
-if query and not df.empty:
-    q_emb = genai.embed_content(model=EMBED_MODEL, content=query, task_type="retrieval_query")['embedding']
-    
-    def score(row_emb):
-        if not row_emb: return 0
-        a, b = np.array(json.loads(row_emb)), np.array(q_emb)
-        return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
+# 7. SEARCH LOGIC (Manual Keyword Filter)
+query = st.text_input("🔍 Search by Keyword (System or Process name)", placeholder="e.g. 'Logistics', 'Order Entry'")
 
-    df["score"] = df["Embedding"].apply(score)
-    results = df.sort_values("score", ascending=False).head(3)
+if query:
+    # Filter rows where the query appears in System or Process (Case Insensitive)
+    mask = df.apply(lambda row: query.lower() in row['System'].lower() or query.lower() in row['Process'].lower(), axis=1)
+    results = df[mask]
     
-    for _, row in results.iterrows():
-        st.subheader(f"📌 {row['System']} - {row['Process']}")
-        st.info(row['Instructions'])
-        st.divider()
+    if not results.empty:
+        st.write(f"Showing {len(results)} results:")
+        for _, row in results.iterrows():
+            st.markdown(f"""
+            <div class="sop-card">
+                <span class="system-tag">{row['System']}</span>
+                <h3>{row['Process']}</h3>
+                <hr style="border: 0.5px solid #334155;">
+                <p><b>Instructions:</b><br>{row['Instructions']}</p>
+                <p style="color: #94a3b8; font-size: 0.9rem;"><i>Rationale: {row['Rationale']}</i></p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("No matches found in the manual database.")
+else:
+    # Show everything if no search
+    st.info("Enter a keyword above to filter procedures.")
+    if not df.empty:
+        st.dataframe(df[["System", "Process"]], use_container_width=True)
