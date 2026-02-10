@@ -2,197 +2,150 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
-import os
-import urllib.parse
 import json
+import urllib.parse
 from datetime import datetime
 from PyPDF2 import PdfReader
 import google.generativeai as genai
 
-# 1. PAGE CONFIG
+# 1. INITIAL SETUP
 st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon="🏹")
 
-# 2. UI THEME
+# 2. AI CONFIGURATION (Stabilized Model Paths)
+API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
+try:
+    genai.configure(api_key=API_KEY)
+    # Using 'models/' prefix is the most stable way to call these
+    model = genai.GenerativeModel("models/gemini-1.5-flash")
+    EMBED_MODEL = "models/embedding-001"
+except Exception as e:
+    st.error(f"AI Connection Error: {e}")
+
+# 3. STYLING (The Premium Dark Theme)
 st.markdown("""
 <style>
-.stApp {background: linear-gradient(135deg, #0f172a, #1e293b); color: #f1f5f9;}
-.block-container {padding-top: 1rem;}
-.card {background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
-border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; margin-bottom: 14px;}
-.main-header {text-align:center; padding:12px; border-bottom:2px solid #f97316; margin-bottom:20px;}
-.nano-tile {background: rgba(255,255,255,0.05); border-radius:10px; padding:8px; text-align:center;}
-.nano-label {font-size:0.65rem; font-weight:700; color:#94a3b8; text-transform:uppercase;}
-.instruction-box {white-space: pre-wrap; font-family: monospace; background: #0b1220;
-color: #f8fafc; padding: 15px; border-left: 4px solid #f97316; border-radius: 6px;}
+    .stApp {background: #0f172a; color: #f1f5f9;}
+    .card {background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 15px; border: 1px solid #334155;}
+    .main-header {text-align:center; padding:15px; border-bottom:3px solid #f97316; margin-bottom:25px;}
+    .instruction-box {white-space: pre-wrap; font-family: 'Courier New', monospace; background: #020617; 
+                      color: #6ee7b7; padding: 15px; border-left: 5px solid #f97316; border-radius: 5px;}
 </style>
 """, unsafe_allow_html=True)
 
-# 3. AI CONFIG (FIXED: Using direct key and full model path)
-API_KEY = "AIzaSyAFHZDDmcowqD_9TVZBqYSe9LgP-KSXQII"
-genai.configure(api_key=API_KEY)
-# FIX: Full path 'models/' is required to resolve NotFound/404 errors
-model = genai.GenerativeModel("models/gemini-1.5-flash") 
-
-# 4. DATA LOADING
-@st.cache_data(ttl=3600)
+# 4. DATABASE LOGIC
 def load_data():
     try:
-        df = pd.read_csv("sop_data.csv")
-        df.fillna("", inplace=True)
+        df = pd.read_csv("sop_data.csv").fillna("")
+        # Ensure 'Embedding' column exists
+        if "Embedding" not in df.columns:
+            df["Embedding"] = ""
         return df
     except:
-        df = pd.DataFrame(columns=[
-            "System","Process","Instructions","Rationale",
-            "Version","Last_Updated","Embedding"
-        ])
-        df.to_csv("sop_data.csv", index=False)
-        return df
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "Embedding"])
 
 df = load_data()
 
-def save_data(dataframe):
-    dataframe.to_csv("sop_data.csv", index=False)
-
-# 5. PDF TEXT EXTRACTION
-def extract_pdf_text(uploaded_file):
-    reader = PdfReader(uploaded_file)
-    return "".join(page.extract_text() or "" for page in reader.pages)
-
-# 6. SIDEBAR METRICS
-st.sidebar.markdown("### 📊 System Metrics")
-st.sidebar.metric("Total SOPs", len(df))
-st.sidebar.metric("Systems", df["System"].nunique() if len(df) else 0)
-st.sidebar.metric("Processes", df["Process"].nunique() if len(df) else 0)
-
-# 7. HEADER
-st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND CENTER</h2></div>', unsafe_allow_html=True)
-
-# 8. NAVIGATION LINKS
-cols = st.columns(5)
-links = [
-    ("Salesforce", "🚀 CRM", "https://arrowcrm.lightning.force.com/"),
-    ("SWB Oracle", "💾 Orders", "https://acswb.arrow.com/Swb/"),
-    ("ETQ Portal", "📋 Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal"),
-    ("Support", "🛠️ Tickets", "https://arrow.service-now.com/myconnect"),
-    ("SOS Help", "🆘 Contact", "mailto:yahya.ouarach@arrow.com")
-]
-for col, (label, btn, url) in zip(cols, links):
-    with col:
-        st.markdown(f'<div class="nano-tile"><div class="nano-label">{label}</div></div>', unsafe_allow_html=True)
-        st.link_button(btn, url, use_container_width=True)
-
-st.divider()
-
-# 9. EMBEDDING FUNCTIONS (FIXED: Added mandatory task_type)
+# 5. CORE FUNCTIONS (Fixed for Searchability)
 def embed_text(text, is_query=False):
+    """Generates vectors for search. task_type is MANDATORY to prevent crashes."""
     try:
-        # FIX: task_type is required for models/embedding-001 or it returns 400 error
         t_type = "retrieval_query" if is_query else "retrieval_document"
-        emb = genai.embed_content(
-            model="models/embedding-001",
-            content=text[:3000],
-            task_type=t_type
-        )["embedding"]
-        return json.dumps(emb)
-    except Exception:
+        result = genai.embed_content(model=EMBED_MODEL, content=text[:3000], task_type=t_type)
+        return json.dumps(result['embedding'])
+    except:
         return ""
 
 def cosine_sim(a, b):
     try:
         if not a or not b: return -1
-        # Convert stored JSON strings back to numpy arrays for calculation
-        a_vec = np.array(json.loads(a))
-        b_vec = np.array(json.loads(b))
-        return np.dot(a_vec, b_vec) / (np.linalg.norm(a_vec) * np.linalg.norm(b_vec) + 1e-10)
+        vec_a, vec_b = np.array(json.loads(a)), np.array(json.loads(b))
+        return np.dot(vec_a, vec_b) / (np.linalg.norm(vec_a) * np.linalg.norm(vec_b) + 1e-10)
     except:
         return -1
 
-# 10. ADMIN AI PDF INGESTION
-st.sidebar.title("⚙️ Admin Console")
-if st.sidebar.checkbox("🚀 Smart AI SOP Upload"):
-    pdf = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
-    if pdf and st.sidebar.button("✨ Extract Procedures"):
-        with st.spinner("AI is analyzing the document..."):
-            try:
-                raw_text = extract_pdf_text(pdf)
-                prompt = f"""Extract SOP steps into CSV rows. 
-Columns: System, Process, Instructions, Rationale.
-Output ONLY raw CSV rows, no markdown headers.
-TEXT: {raw_text[:8000]}"""
-                
-                response = model.generate_content(prompt)
-                cleaned = response.text.replace("```csv","").replace("```","").strip()
-                
-                # Use header=None to ensure the first row of data isn't lost as a header
-                new_rows = pd.read_csv(io.StringIO(cleaned),
-                                       names=["System","Process","Instructions","Rationale"],
-                                       header=None)
-                
-                new_rows["Version"] = 1
-                new_rows["Last_Updated"] = datetime.now().strftime("%Y-%m-%d")
+# 6. HEADER & NAVIGATION
+st.markdown('<div class="main-header"><h2>🏹 ARLEDGE OPERATIONS COMMAND</h2></div>', unsafe_allow_html=True)
 
-                st.sidebar.info("Generating Search Index...")
-                # FIX: Storing embeddings allows search to work
-                new_rows["Embedding"] = new_rows["Instructions"].apply(lambda x: embed_text(x, is_query=False))
+nav_cols = st.columns(5)
+nav_links = [
+    ("CRM", "https://arrowcrm.lightning.force.com/"),
+    ("Orders", "https://acswb.arrow.com/Swb/"),
+    ("Forms", "https://arrow.etq.com/prod/rel/#/app/system/portal"),
+    ("Tickets", "https://arrow.service-now.com/myconnect"),
+    ("Help", "mailto:yahya.ouarach@arrow.com")
+]
+for col, (label, url) in zip(nav_cols, nav_links):
+    col.link_button(label, url, use_container_width=True)
 
-                df_updated = pd.concat([df, new_rows], ignore_index=True)
-                save_data(df_updated)
-
-                st.sidebar.success(f"Added {len(new_rows)} SOPs!")
-                st.cache_data.clear()
-                st.rerun()
-            except Exception as e:
-                st.sidebar.error("AI processing failed")
-
-# 11. SEARCH
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("🔍 Intelligent SOP Search")
-query = st.text_input("Search procedures in plain English")
-st.markdown('</div>', unsafe_allow_html=True)
-
-results = pd.DataFrame()
-
-if query and len(df) > 0:
-    try:
-        q_embed = embed_text(query, is_query=True)
-        # Calculate similarity against existing database
-        df["score"] = df["Embedding"].apply(lambda x: cosine_sim(x, q_embed))
-        results = df.sort_values("score", ascending=False).head(5)
-        # Filter for quality matches
-        results = results[results["score"] > 0.3]
-    except Exception:
-        st.error("Search index temporarily busy.")
-
-# Display search results
-for _, row in results.iterrows():
-    st.markdown(f"### 📌 {row['System']} | {row['Process']}")
-    st.caption(f"**Rationale:** {row['Rationale']}")
-    st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
-
-    subject = urllib.parse.quote(f"SOP Issue Report: {row['Process']}")
-    body = urllib.parse.quote(f"Issue with procedure:\nSystem: {row['System']}\nProcess: {row['Process']}")
-    st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={subject}&body={body}")
-    st.markdown("---")
-
-# 12. AI COPILOT
 st.divider()
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.subheader("🧠 Arledge AI Copilot")
 
-question = st.text_area("Ask an operational question")
+# 7. ADMIN PANEL (The Ingestion Engine)
+st.sidebar.title("⚙️ Admin Console")
+if st.sidebar.checkbox("🚀 Smart AI Upload"):
+    pdf_file = st.sidebar.file_uploader("Upload SOP PDF", type="pdf")
+    if pdf_file and st.sidebar.button("✨ Process Manual"):
+        with st.spinner("AI is digitizing document..."):
+            reader = PdfReader(pdf_file)
+            raw_text = "".join([p.extract_text() or "" for p in reader.pages])
+            
+            prompt = f"Extract procedures as CSV. Columns: System, Process, Instructions, Rationale. NO HEADERS. Text: {raw_text[:8000]}"
+            response = model.generate_content(prompt)
+            
+            # Cleaning AI Response
+            csv_data = response.text.replace("```csv", "").replace("```", "").strip()
+            new_rows = pd.read_csv(io.StringIO(csv_data), names=["System", "Process", "Instructions", "Rationale"], header=None)
+            
+            st.sidebar.info("Creating search index...")
+            new_rows["Embedding"] = (new_rows["System"] + " " + new_rows["Process"]).apply(lambda x: embed_text(x))
+            
+            df = pd.concat([df, new_rows], ignore_index=True)
+            df.to_csv("sop_data.csv", index=False)
+            st.sidebar.success("Manual Added to Database!")
+            st.rerun()
 
-if st.button("Get AI Guidance") and question:
-    with st.spinner("Consulting intelligence..."):
-        # Use top search results to provide context for the AI answer
-        context = "\n\n".join(results["Instructions"].astype(str).tolist())
-        prompt = f"""Use this SOP context to answer:
-        {context}
-        
-        QUESTION: {question}"""
-        try:
-            answer = model.generate_content(prompt)
-            st.write(answer.text)
-        except Exception:
-            st.error("AI system currently unavailable")
-
+# 8. THE SEARCH ENGINE
+st.markdown('<div class="card"><h3>🔍 SOP Search</h3>', unsafe_allow_html=True)
+query = st.text_input("What do you need help with? (e.g. 'How to release price')")
 st.markdown('</div>', unsafe_allow_html=True)
+
+if query:
+    # Perform Semantic Search
+    q_emb = embed_text(query, is_query=True)
+    if q_emb:
+        df["score"] = df["Embedding"].apply(lambda x: cosine_sim(x, q_emb))
+        # Keyword fallback: if score is low, check for keyword match
+        df["keyword_match"] = df.apply(lambda x: query.lower() in str(x).lower(), axis=1)
+        
+        results = df[(df["score"] > 0.3) | (df["keyword_match"])].sort_values(by="score", ascending=False).head(5)
+    else:
+        # Emergency Keyword Search only if AI is down
+        results = df[df.apply(lambda x: query.lower() in str(x).lower(), axis=1)].head(5)
+
+    if not results.empty:
+        for _, row in results.iterrows():
+            with st.container():
+                st.markdown(f"### 📌 {row['System']} | {row['Process']}")
+                st.markdown(f'<div class="instruction-box">{row["Instructions"]}</div>', unsafe_allow_html=True)
+                
+                # Feedback link
+                sub = urllib.parse.quote(f"SOP Feedback: {row['Process']}")
+                st.link_button("🚩 Report Issue", f"mailto:yahya.ouarach@arrow.com?subject={sub}")
+                st.markdown("---")
+    else:
+        st.warning("No procedures found for that search. Try different keywords.")
+
+# 9. AI COPILOT (RAG)
+st.divider()
+st.subheader("🧠 Arledge AI Copilot")
+user_q = st.text_area("Ask a complex question (requires search context)")
+if st.button("Consult AI") and user_q:
+    if query: # Uses the results from the search above as context
+        context = "\n\n".join([f"Process: {r['Process']}\nInstructions: {r['Instructions']}" for _, r in results.iterrows()])
+        full_prompt = f"Answer this using ONLY the context: {user_q}\n\nCONTEXT:\n{context}"
+        try:
+            ans = model.generate_content(full_prompt)
+            st.info(ans.text)
+        except:
+            st.error("AI is currently unavailable.")
+    else:
+        st.warning("Please search for a topic first so the AI has context to read.")
