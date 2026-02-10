@@ -18,4 +18,3 @@ Salesforce,Case Navigation,"Search for the order/SO number in the 'Digital Custo
 ETQ Portal,Sure Ship Domestic,"1. Go to 'eRequests: Quality, GTMC & Warehouse'. 2. Select 'Sure Ship Domestic - Draft'. 3. Provide warehouse code and requestor email.",Expedites processing for Delivery IDs stuck in 'Released' or 'Picked' status for >2 days[cite: 993, 994, 996].
 IMS System,Supplier Status Check,"Check lead time with the supplier using the IMS system for orders in 'Awaiting Receipt' status.",Provides visibility on incoming shipments from suppliers to cross-dock facilities[cite: 971].
 Oracle (Unity),Delink Invoice,"Email delink_and_rematch_invoices@arrow.com with SO/PO details to request delinking.",Required when an order has been billed but quantity or price amendments are necessary[cite: 97, 98].
-
