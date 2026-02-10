@@ -14,7 +14,7 @@ st.set_page_config(page_title="Arledge Command Center", layout="wide", page_icon
 # --------------------------------------------------
 # 2. GEMINI AI CONFIG (NEW SDK)
 # --------------------------------------------------
-API_KEY = "PASTE_YOUR_REAL_GEMINI_API_KEY_HERE"
+API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
 client = genai.Client(api_key=API_KEY)
 
 CHAT_MODEL = "gemini-1.5-flash"
