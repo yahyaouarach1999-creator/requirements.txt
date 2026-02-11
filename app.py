@@ -9,53 +9,34 @@ st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff; }
-    .result-card { 
-        border: 1px solid #e1e4e8; 
-        padding: 24px; 
-        border-radius: 10px; 
-        background-color: #fcfcfc; 
-        margin-bottom: 25px;
-    }
-    .instructions { 
-        background-color: #f8f9fa; 
-        padding: 18px; 
-        border-left: 6px solid #005a9c; 
-        white-space: pre-wrap;
-        color: #202124;
-    }
-    .login-box {
-        max-width: 400px;
-        margin: 100px auto;
-        padding: 30px;
-        border: 1px solid #eee;
-        border-radius: 10px;
-        text-align: center;
-    }
+    .login-container { max-width: 450px; margin: 100px auto; padding: 40px; border-radius: 12px; border: 1px solid #e1e4e8; background: #fcfcfc; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .result-card { border: 1px solid #e1e4e8; padding: 24px; border-radius: 10px; background-color: #fcfcfc; margin-bottom: 25px; }
+    .instructions { background-color: #f8f9fa; padding: 18px; border-left: 6px solid #005a9c; white-space: pre-wrap; color: #202124; line-height: 1.6; }
+    .system-badge { background-color: #005a9c; color: white; padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. LOGIN GATEWAY
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+# 2. ACCESS CONTROL (LOGIN)
+if 'auth' not in st.session_state:
+    st.session_state.auth = False
 
-if not st.session_state.authenticated:
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+if not st.session_state.auth:
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
     st.title("🏹 Arledge")
-    st.write("Please sign in with your Arrow credentials.")
-    user_email = st.text_input("Email Address", placeholder="username@arrow.com")
-    if st.button("Sign In"):
+    st.write("Secure Access Required")
+    user_email = st.text_input("Arrow Email Address", placeholder="e.g. jdoe@arrow.com")
+    if st.button("Enter Arledge"):
         if user_email.lower().endswith("@arrow.com"):
-            st.session_state.authenticated = True
+            st.session_state.auth = True
             st.session_state.user = user_email
             st.rerun()
         else:
-            st.error("Access Restricted. Use your @arrow.com email.")
+            st.error("Invalid Domain. Access restricted to Arrow Electronics employees.")
     st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
-# 3. LOAD DATABASE
+# 3. DATA LOADING
 DB_FILE = "master_ops_database.csv"
-
 @st.cache_data
 def load_db():
     if os.path.exists(DB_FILE):
@@ -64,43 +45,37 @@ def load_db():
 
 df = load_db()
 
-# 4. SIDEBAR (Only visible after login)
+# 4. SIDEBAR
 with st.sidebar:
     st.title("Arledge")
-    st.write(f"Logged in as: {st.session_state.user}")
+    st.caption(f"User: {st.session_state.user}")
     st.divider()
-    st.markdown("### Core Tools")
+    st.markdown("### Portals")
     st.markdown("[🥷 OMT Ninja](https://omt-ninja.arrow.com) | [📋 ETQ Portal](https://etq.arrow.com)")
     st.markdown("[💼 Salesforce](https://arrow.my.salesforce.com) | [☁️ Oracle Unity](https://ebs.arrow.com)")
-    
-    st.divider()
-    with st.expander("🚨 Report Issue"):
-        st.text_input("Process Name")
-        st.text_area("Details")
-        st.button("Submit")
-
     if st.button("Logout"):
-        st.session_state.authenticated = False
+        st.session_state.auth = False
         st.rerun()
 
-# 5. MAIN INTERFACE
-st.title("Arledge")
-query = st.text_input("", placeholder="Search procedures (e.g. 'CoC', 'Price Break', 'PayPal')...")
+# 5. SEARCH & RESULTS
+st.title("Search Procedures & Contacts")
+query = st.text_input("", placeholder="Search by keyword, collector name, system, or warehouse...")
 
 if query:
     results = df[df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)]
     if not results.empty:
+        st.write(f"Showing {len(results)} matches:")
         for _, row in results.iterrows():
             st.markdown(f"""
             <div class="result-card">
-                <small style="color:gray; float:right;">Ref: {row['File_Source']}</small>
-                <b style="color:#005a9c; text-transform: uppercase;">{row['System']}</b>
-                <h2 style="margin-top:5px;">{row['Process']}</h2>
-                <div class="instructions"><b>PROCEDURE:</b><br>{row['Instructions']}</div>
-                <p style="margin-top:10px;"><i>Rationale: {row['Rationale']}</i></p>
+                <div style="float:right;"><span class="system-badge">{row['System']}</span></div>
+                <h2 style="margin-top:0;">{row['Process']}</h2>
+                <div class="instructions"><b>PROCEDURE / INFO:</b><br>{row['Instructions']}</div>
+                <p style="margin-top:15px; font-size:0.9rem;"><b>Rationale:</b> {row['Rationale']}<br>
+                <small style="color:gray;">Source: {row['File_Source']}</small></p>
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.error("No matches found.")
+        st.error(f"No results found for '{query}'.")
 else:
-    st.info("Search to begin.")
+    st.info("The Knowledge Center is active. Type a keyword to begin.")
