@@ -86,3 +86,15 @@ IT Support,Blocked User,"Ticket: 'Digital Issue' in My Connect.\nAttach screensh
 Logistics,Short Shipment,"Inform supplier, amend Unity quantity, refund customer.",Standard stock error.,PLAYBOOK Digital OMT
 Logistics,Over Shipment,"Inform supplier, create standalone PO, request RMA.",Standard stock error.,PLAYBOOK Digital OMT
 Logistics,Damaged Part,"Cancel line, refund customer, request RMA from supplier.",Standard stock error.,PLAYBOOK Digital OMT
+System,Process,Instructions,Rationale,File_Source
+Supplier Portal,Online Components Login,"URL: Online Components\nUser: support@verical.com\nPassword: support",Access for order tracking.,Internal Credentials
+Supplier Portal,Newark Element 14 Login,"URL: Newark Electronics\nUsername: Verical\nPassword: Vericalnewark",Access for order tracking.,Internal Credentials
+Supplier Portal,Verical.com Internal Access,"URL: Verical.com\nUsername: operations@verical.com\nPassword: Verical_OMT",Admin/OMT operations.,Internal Credentials
+Supplier Portal,Arrow.com Internal Access,"URL: Arrow.com\nUsername: weboperations@arrow.com\nPassword: Arrow.com_OMT",Admin/OMT operations.,Internal Credentials
+Supplier Portal,PEI Genesis Login,"URL: peigenesis.com/en/my-account\nLogin: operations@verical.com\nPassword: Arrow_OMT",Access for order tracking.,Internal Credentials
+Supplier Portal,Waldom Electronics Access,"URL: waldom.com\nNote: Request individual user and password if not assigned.",Access for order tracking.,Internal Credentials
+Supplier Portal,Future Electronics Access,"URL: futureelectronics.com\nNote: Request individual user and password if not assigned.",Access for order tracking.,Internal Credentials
+Finance,Collector: Americas,"1. US/Canada: ARROWUS_AR@arrow.com\n2. US Digital: DigitalAR@arrow.com\n3. Credit Limit: CreditOps@arrow.com",Primary Finance contacts.,PLAYBOOK Digital OMT
+Oracle (Unity),Delink Invoice Process,"1. Email: delink_and_rematch_invoices@arrow.com\n2. Template: 'Could you please assist with delinking? Refer to PO XXX.'\n3. Wait for confirmation, amend Unity, notify team.",Required for 'Billed' orders.,PLAYBOOK Digital OMT
+Warehouse (ETQ),Sure Ship Domestic,"Reno [VXX] orders > 2 days in 'Released'.\nETQ Portal > 'Sure Ship Domestic - Draft'.\nHost: 'AC Prod'.",Expedites Reno picking.,SOP 7
+Warehouse (WMS),Nogales V90 CoC,"Email: verical-logistics@verical.com\nCC: amunoz@arrow.com, jawells@arrow.com\nTemplate: Provide MFG CoC for WEB-SO: [SO#].",Manual V90 CoC.,SOP 7
