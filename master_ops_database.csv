@@ -34,3 +34,22 @@ Contacts,HK Receiving,"Contact: Issac.Chan@arrow.com or URGENTRECEIVING.HK@arrow
 Collections,Alpha: A B T W,"Collector: Fernando Solana (Fernando.Solana@arrow.com)","Assigned Alphas: A, B, T, W",Here you can find Contacts.pdf
 Collections,Alpha: I J K,"Collector: Iliana Robles (liana.Robles@arrow.com)","Assigned Alphas: I, J, K",Here you can find Contacts.pdf
 Collections,Alpha: L P S M N O R/G,"Collector: Valeria Sanchez (Valeria.Sanchez@arrow.com)","Assigned Alphas: L, P, S, M, N, O, R/G",Here you can find Contacts.pdf
+System,Process,Instructions,Rationale,File_Source
+Logistics,Expedite Receiving,"Provide: Supplier PO, SO, Supplier Name, Tracking Number, Carrier, Date of Arrival, MPN, and QTY. Note: Use if parts arrived but aren't reserved/received after 5+ days.",Escalates unreceived stock at warehouse.,User Update
+Logistics,CDH Sure Ship / Expedite,"Email: URGENTRECEIVING.HK@arrowasia.com & JB.SHIPPING@arrowasia.com",Direct contact for HK Warehouse urgency.,User Update
+Logistics,CDV Support,"Email: business.support.pdc.emea@arrow.com",Direct contact for CDV warehouse support.,User Update
+Procedures,Email Change Request,"Rule: We cannot change emails on existing accounts. Customer must create a new account with the new email; after first order, they can be linked.",Security/Account Integrity policy.,User Update
+Procedures,Payment Method Update,"Rule: System cannot update to a CC on an existing order. Customer must place a new order with CC; then OMT cancels the old order to save stock.",System limitation workaround.,User Update
+Procedures,New Customer Sweden,"Offices: Stockholm (Kv Kolding 3, Kronborgsgränd 7) and Gothenburg (Datavagen 14A). Note: New web customers must establish an Arrow Line of Credit locally.",Regional credit policy.,User Update
+Procedures,EUC Scrap Move,"Request 'Scrap Move' for cancelled orders where customer cannot provide End User Certificate (EUC).",Inventory management for trade-blocked parts.,User Update
+Oracle (Unity),Cost Setup Request,"Template: 'Order is in Entered status and needs Cost in order to be booked'. Provide: Acc#, SO, Part Num, Qty.",Allows booking of orders stuck in 'Entered'.,User Update
+Templates,Payment Proof Submission,"Forward to: vericalcia@arrow.com, wireremit@arrow.com. Include: Order WEB-SO, Customer Name, Acc#, Amount. Always CC Collector.",Standard Finance notification.,User Update
+Templates,HTS/Import Request,"Quick Text: 'I received an alert Line 3.1 on the order saying we haven't received full quantity ordered. Check and advise.'",Shortage alert clarification.,User Update
+Templates,Order Cancellation (No Follow-up),"Text: 'Order has been cancelled due to lack of follow-up on our pending request. Reach out if you wish to proceed.'",Standard closure for unresponsive clients.,User Update
+Templates,Partial QTY Authorization,"Text: 'Please proceed with the available quantity.'",Customer permission for partial fills.,User Update
+Templates,Trade Compliance Review,"Text: 'Document sent to Trade Compliance for review. Will update once feedback is received.'",Standard status update for trade holds.,User Update
+Templates,Cancellation Warning,"Text: 'Order will be cancelled within 24 hours if we do not receive a response from your side.'",Final notice template.,User Update
+Templates,RMA Request (No EUC),"Template: Request urgent RMA for POXXXX because customer cannot provide EUC. Parts are at CDXXX warehouse.",Facilitates returns for trade compliance.,User Update
+Documentation,Refund Request (Wire),"Required: TT copy of payment, Banking Info Form, manager approval, SWB cancellation screenshot, Stock-out form.",Standardized wire refund bundle.,User Update
+Documentation,Certificate of Compliance (CofC),"Use Arrow/Verical official document if manufacturer CofC cannot be shared due to non-disclosure policy.",Standardized compliance document.,User Update
+Documentation,End User Certificate (EUC),"Complete for 'Export: End User Certificate not on file'. Forward to: duediligence.americas@arrow.com.",US/Americas trade compliance.,User Update
