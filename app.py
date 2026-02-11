@@ -6,14 +6,13 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- STRICT SECURITY WHITELIST ---
-# No spaces at the start of these lines
 AUTHORIZED_USERS = [
     "yahya.ouarach@arrow.com",
     "hanane.badr@arrow.com",
     "mafernandez@arrow.com"
 ]
 
-# Styling: Professional White
+# Styling: Professional White & High Contrast
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff !important; color: #000000 !important; }
@@ -34,6 +33,7 @@ st.markdown("""
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
+    st.session_state.user = ""
 
 # 2. LOGIN GATE
 if not st.session_state.auth:
@@ -65,32 +65,54 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### ⚠️ Report an Issue")
-    st.markdown(f"Contact Admin: [yahya.ouarach@rrow.com](mailto:yahya.ouarach@rrow.com)")
+    # Points directly to Hanane's email
+    st.markdown(f"Contact Admin: [hanane.badr@arrow.com](mailto:hanane.badr@arrow.com)")
     
     if st.button("Logout"):
         st.session_state.auth = False
         st.rerun()
 
-# 4. DATABASE & SEARCH
+# 4. DATABASE LOADING
 @st.cache_data
 def load_db():
-    if os.path.exists("master_ops_database.csv"):
-        return pd.read_csv("master_ops_database.csv").fillna("")
+    file_path = "master_ops_database.csv"
+    if os.path.exists(file_path):
+        # Clean loading to handle encoding and whitespace
+        return pd.read_csv(file_path, encoding='utf-8').fillna("")
     return pd.DataFrame()
 
 df = load_db()
 
+# 5. MAIN INTERFACE
 st.title("OMT Knowledge Base")
-query = st.text_input("", placeholder="Search procedures, credentials, or collectors...")
+
+# Permanent Quick-Reference Table
+st.markdown("### 📞 Collections Alpha Split")
+col_data = {
+    "Collector": ["Fernando Solana", "Daniel Aguirre", "Mariana Diaz", "Sofia Panduro", "Iliana Robles", "Valeria Sanchez"],
+    "Assigned Alphas": ["A, B, T, W", "#, Signs, D, Q, U, V, X, Y, Z", "CH", "E, F", "I, J, K", "L, P, S, M, N, O, R/G"]
+}
+st.table(pd.DataFrame(col_data))
+
+st.divider()
+
+# Search Logic
+query = st.text_input("Search Procedures or Alerts", placeholder="Search by keyword (e.g., 'VAT', 'SQR', 'Reno', 'Fernando')...")
 
 if query:
-    results = df[df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)]
+    # This checks every column and ignores case sensitivity
+    mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
+    results = df[mask]
+    
     if not results.empty:
+        st.success(f"Found {len(results)} matching entries:")
         for _, row in results.iterrows():
             st.markdown(f"""
             <div class="result-card">
-                <span style="color:#005a9c; font-weight:bold; font-size:0.75rem;">{row['System']}</span>
-                <h3 style="margin-top:5px;">{row['Process']}</h3>
+                <span style="color:#005a9c; font-weight:bold; font-size:0.8rem;">{row['System']} | {row['Process']}</span>
                 <div class="instructions">{row['Instructions']}</div>
+                <p style="font-size:0.7rem; color:grey; margin-top:5px;">Rationale: {row['Rationale']} | Source: {row['File_Source']}</p>
             </div>
             """, unsafe_allow_html=True)
+    else:
+        st.warning(f"No results found for '{query}'. Ensure the keyword is correct.")
