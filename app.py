@@ -65,7 +65,7 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### ⚠️ Report an Issue")
-    st.markdown(f"Contact Admin: [hanane.badr@arrow.com](mailto:yahya.ouarach@rrow.com)")
+    st.markdown(f"Contact Admin: [yahya.ouarach@rrow.com](mailto:yahya.ouarach@rrow.com)")
     
     if st.button("Logout"):
         st.session_state.auth = False
