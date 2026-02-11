@@ -5,49 +5,44 @@ import os
 from PyPDF2 import PdfReader
 import google.generativeai as genai
 
-# 1. SETUP & THEME
-st.set_page_config(page_title="Arledge Ops Command", layout="wide", page_icon="🏹")
+# 1. PROFESSIONAL PAGE SETUP
+st.set_page_config(page_title="Arledge OMT Command Center", layout="wide", page_icon="📊")
 
+# Professional CSS (Light Mode, Clean Borders, Corporate Fonts)
 st.markdown("""
 <style>
-    .stApp {background-color: #0f172a; color: #f1f5f9;}
-    .sop-card {
-        background: #1e293b; 
-        padding: 20px; 
-        border-radius: 12px; 
-        border-left: 6px solid #f97316; 
-        margin-bottom: 20px;
+    .reportview-container { background: #f0f2f6; }
+    .main { background: #ffffff; padding: 20px; border-radius: 10px; }
+    .tool-card {
+        border: 1px solid #e1e4e8;
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        margin-bottom: 15px;
     }
-    .system-tag {
-        background: #f97316; 
-        color: white; 
-        padding: 4px 12px; 
-        border-radius: 20px; 
-        font-size: 0.75rem; 
-        font-weight: bold;
+    .instruction-box {
+        background-color: #f1f3f4;
+        border-left: 5px solid #2c3e50;
+        padding: 12px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #202124;
     }
-    .tool-link {
-        color: #38bdf8 !important;
-        text-decoration: none;
-        font-weight: bold;
-        border: 1px solid #38bdf8;
-        padding: 5px 10px;
-        border-radius: 5px;
+    .file-tag {
+        color: #5f6368;
+        font-size: 0.8rem;
+        font-style: italic;
     }
+    a { text-decoration: none; color: #1a73e8; font-weight: 500; }
+    a:hover { text-decoration: underline; }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. TOOL LINKS (Quick Access)
-st.sidebar.header("🔗 Quick Tool Links")
-st.sidebar.markdown("""
-- [🥷 OMT Ninja](https://omt-ninja.arrow.com)
-- [📋 ETQ Portal](https://etq.arrow.com)
-- [☁️ Unity / Oracle](https://ebs.arrow.com)
-- [📦 WMS Reprints](https://wms-prod.arrow.com/PAWMSReprints/)
-- [💼 Salesforce](https://arrow.my.salesforce.com)
-""", unsafe_allow_html=True)
+# 2. API CONFIG
+API_KEY = "AIzaSyA4xwoKlP0iuUtSOkYvpYrADquexHL7YSE"
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-flash-latest')
 
-# 3. DATA STORAGE LOGIC
+# 3. DATA PERSISTENCE
 DB_FILE = "master_ops_database.csv"
 
 def load_db():
@@ -58,51 +53,92 @@ def load_db():
 if 'df' not in st.session_state:
     st.session_state.df = load_db()
 
-# 4. DATA INGESTION (With File Tracking)
+# 4. SIDEBAR: NAVIGATION & TOOLS
 with st.sidebar:
+    st.title("🏹 OMT Tools")
+    st.subheader("Internal Portals")
+    st.markdown("""
+    * 🔗 [OMT Ninja](https://omt-ninja.arrow.com)
+    * 🔗 [ETQ Portal](https://etq.arrow.com)
+    * 🔗 [Oracle Unity](https://ebs.arrow.com)
+    * 🔗 [Salesforce CRM](https://arrow.my.salesforce.com)
+    * 🔗 [WMS Reprints](https://wms-prod.arrow.com/PAWMSReprints/)
+    """)
+    
     st.divider()
+    st.subheader("📁 Data Management")
     uploaded_files = st.file_uploader("Upload SOP PDFs", type="pdf", accept_multiple_files=True)
     
-    if uploaded_files and st.button("🚀 Process & Index"):
-        all_new_rows = []
-        for uploaded_file in uploaded_files:
-            reader = PdfReader(uploaded_file)
-            text = "".join([p.extract_text() for p in reader.pages])
+    if uploaded_files and st.button("Index Selected Files"):
+        with st.spinner("Processing..."):
+            all_rows = []
+            for uploaded_file in uploaded_files:
+                reader = PdfReader(uploaded_file)
+                for i in range(0, len(reader.pages), 5):
+                    text = "".join([p.extract_text() for p in reader.pages[i:i+5]])
+                    prompt = f"Extract procedures as CSV (System, Process, Instructions, Rationale). No headers. Text: {text}"
+                    try:
+                        response = model.generate_content(prompt)
+                        csv_data = response.text.replace("```csv", "").replace("```", "").strip()
+                        chunk_df = pd.read_csv(io.StringIO(csv_data), names=["System", "Process", "Instructions", "Rationale"], header=None)
+                        chunk_df['File_Source'] = uploaded_file.name
+                        all_rows.append(chunk_df)
+                    except: continue
             
-            # AI Extraction with Source Tracking
-            prompt = f"Extract procedures as CSV (System, Process, Instructions, Rationale). Text: {text[:8000]}"
-            # (Note: API config is required here as in previous steps)
-            # For brevity, assuming extraction logic runs and adds a 'File_Source' column:
-            # new_df['File_Source'] = uploaded_file.name
-            st.success(f"Indexed {uploaded_file.name}")
+            if all_rows:
+                new_df = pd.concat(all_rows, ignore_index=True)
+                st.session_state.df = pd.concat([st.session_state.df, new_df], ignore_index=True).drop_duplicates(subset=['Process'])
+                st.session_state.df.to_csv(DB_FILE, index=False)
+                st.rerun()
 
-# 5. SEARCH WITH FILE FILTERING
-st.title("🏹 Arledge Operational Command")
+    if st.button("Clear Database"):
+        if os.path.exists(DB_FILE): os.remove(DB_FILE)
+        st.session_state.df = pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
+        st.rerun()
 
-# Multi-CSV Selection Filter
-source_options = ["All Files"] + list(st.session_state.df['File_Source'].unique())
-selected_source = st.selectbox("📂 Filter by Specific SOP File:", source_options)
+# 5. MAIN INTERFACE
+st.title("Operational Procedures Search")
 
-query = st.text_input("🔍 Search Keyword (e.g. 'RMA', 'Manual Hold', 'Price')")
+# Search and Filter Logic
+col1, col2 = st.columns([2, 1])
+with col1:
+    query = st.text_input("Search processes, systems, or keywords...", placeholder="e.g. 'Dropship' or 'RMA'")
+with col2:
+    sources = ["All Files"] + list(st.session_state.df['File_Source'].unique())
+    selected_source = st.selectbox("Search within file:", sources)
 
-# Logic to filter by Source AND Keyword
-df_to_search = st.session_state.df
+# Apply Filters
+display_df = st.session_state.df
 if selected_source != "All Files":
-    df_to_search = df_to_search[df_to_search['File_Source'] == selected_source]
+    display_df = display_df[display_df['File_Source'] == selected_source]
 
 if query:
-    mask = df_to_search.apply(lambda row: query.lower() in row.astype(str).str.lower().values, axis=1)
-    results = df_to_search[mask]
+    mask = display_df.apply(lambda row: query.lower() in row.astype(str).str.lower().values, axis=1)
+    results = display_df[mask]
     
     if not results.empty:
+        st.write(f"Showing {len(results)} results")
         for _, row in results.iterrows():
-            st.markdown(f"""
-            <div class="sop-card">
-                <span class="system-tag">{row['System']}</span>
-                <small style="color: #94a3b8; margin-left:10px;">Source: {row['File_Source']}</small>
-                <h3>{row['Process']}</h3>
-                <div style="background: #0f172a; padding: 10px; border-radius: 5px; color: #38bdf8;">
-                    {row['Instructions']}
+            with st.container():
+                st.markdown(f"""
+                <div class="tool-card">
+                    <div style="display: flex; justify-content: space-between;">
+                        <strong style="color: #d93025;">{row['System']}</strong>
+                        <span class="file-tag">📄 {row['File_Source']}</span>
+                    </div>
+                    <h3 style="margin: 10px 0;">{row['Process']}</h3>
+                    <div class="instruction-box">
+                        <strong>Standard Procedure:</strong><br>{row['Instructions']}
+                    </div>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: #5f6368;">
+                        <strong>Rationale:</strong> {row['Rationale']}
+                    </p>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+    else:
+        st.warning("No matches found.")
+else:
+    if not display_df.empty:
+        st.dataframe(display_df[["System", "Process", "File_Source"]], use_container_width=True)
+    else:
+        st.info("Upload your first SOP file in the sidebar to begin building the command center.")
