@@ -6,10 +6,9 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- STRICT SECURITY WHITELIST ---
+# Removed others - only your account remains
 AUTHORIZED_USERS = [
-    "yahya.ouarach@arrow.com",
-    "hanane.badr@arrow.com",
-    "mafernandez@arrow.com"
+    "yahya.ouarach@arrow.com"
 ]
 
 # Styling: Professional White & High Contrast
@@ -47,7 +46,7 @@ if not st.session_state.auth:
             st.session_state.user = email_input
             st.rerun()
         else:
-            st.error("Access Denied: Email not on authorized whitelist.")
+            st.error("Access Denied: Email not authorized.")
     st.stop()
 
 # 3. SIDEBAR: TOOLS & REPORTING
@@ -65,8 +64,8 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### ⚠️ Report an Issue")
-    # Points directly to Hanane's email
-    st.markdown(f"Contact Admin: [hanane.badr@arrow.com](mailto:hanane.badr@arrow.com)")
+    # Updated to your email only
+    st.markdown(f"Contact Admin: [yahya.ouarach@arrow.com](mailto:yahya.ouarach@arrow.com)")
     
     if st.button("Logout"):
         st.session_state.auth = False
@@ -77,7 +76,6 @@ with st.sidebar:
 def load_db():
     file_path = "master_ops_database.csv"
     if os.path.exists(file_path):
-        # Clean loading to handle encoding and whitespace
         return pd.read_csv(file_path, encoding='utf-8').fillna("")
     return pd.DataFrame()
 
@@ -86,21 +84,10 @@ df = load_db()
 # 5. MAIN INTERFACE
 st.title("OMT Knowledge Base")
 
-# Permanent Quick-Reference Table
-st.markdown("### 📞 Collections Alpha Split")
-col_data = {
-    "Collector": ["Fernando Solana", "Daniel Aguirre", "Mariana Diaz", "Sofia Panduro", "Iliana Robles", "Valeria Sanchez"],
-    "Assigned Alphas": ["A, B, T, W", "#, Signs, D, Q, U, V, X, Y, Z", "CH", "E, F", "I, J, K", "L, P, S, M, N, O, R/G"]
-}
-st.table(pd.DataFrame(col_data))
-
-st.divider()
-
-# Search Logic
-query = st.text_input("Search Procedures or Alerts", placeholder="Search by keyword (e.g., 'VAT', 'SQR', 'Reno', 'Fernando')...")
+# Search Logic (Permanent table removed from home screen)
+query = st.text_input("Search Procedures, Alerts, or Collectors", placeholder="Search by keyword (e.g., 'Alpha', 'VAT', 'Fernando')...")
 
 if query:
-    # This checks every column and ignores case sensitivity
     mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
     results = df[mask]
     
@@ -115,4 +102,6 @@ if query:
             </div>
             """, unsafe_allow_html=True)
     else:
-        st.warning(f"No results found for '{query}'. Ensure the keyword is correct.")
+        st.warning(f"No results found for '{query}'.")
+else:
+    st.info("👋 Welcome. Use the search bar above to find operational procedures or collector assignments.")
