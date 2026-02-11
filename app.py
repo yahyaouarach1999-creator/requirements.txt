@@ -3,38 +3,38 @@ import pandas as pd
 import io
 import os
 from PyPDF2 import PdfReader
-import google.generativeai as genai
 
 # --- 1. PRO PAGE CONFIG ---
-st.set_page_config(page_title="OMT Command Center", layout="wide", page_icon="🏹")
+st.set_page_config(page_title="Arledge OMT Command", layout="wide", page_icon="🏹")
 
-# Professional Corporate Styling (Light Mode)
+# Professional Light Mode Styling
 st.markdown("""
 <style>
-    .main { background-color: #ffffff; }
-    .stTextInput { margin-top: -20px; }
+    .main { background-color: #f8f9fa; }
     .sop-card {
         border: 1px solid #e1e4e8;
-        padding: 20px;
-        border-radius: 8px;
-        background-color: #fcfcfc;
-        margin-bottom: 20px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+        padding: 24px;
+        border-radius: 10px;
+        background-color: #ffffff;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .step-box {
         background-color: #f1f3f4;
         border-left: 5px solid #1a73e8;
         padding: 15px;
-        margin: 10px 0;
+        margin: 15px 0;
         font-family: 'Segoe UI', sans-serif;
         white-space: pre-wrap;
+        color: #202124;
+        line-height: 1.6;
     }
-    .system-label { color: #d93025; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
-    .source-label { color: #70757a; font-size: 0.75rem; float: right; }
+    .system-label { color: #d93025; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
+    .source-tag { color: #70757a; font-size: 0.75rem; float: right; border: 1px solid #e1e4e8; padding: 2px 8px; border-radius: 4px; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 2. CLOUD DATABASE LOGIC ---
+# --- 2. DATABASE LOADING ---
 DB_FILE = "master_ops_database.csv"
 
 def load_data():
@@ -45,56 +45,48 @@ def load_data():
 if 'df' not in st.session_state:
     st.session_state.df = load_data()
 
-# --- 3. SIDEBAR (Tools & Upload) ---
+# --- 3. SIDEBAR (Tools & Links) ---
 with st.sidebar:
-    st.title("🔗 Quick Links")
+    st.title("🏹 OMT Resources")
     st.markdown("""
-    [🥷 OMT Ninja](https://omt-ninja.arrow.com) | [📋 ETQ Portal](https://etq.arrow.com)
-    [💼 Salesforce](https://arrow.my.salesforce.com) | [☁️ Oracle Unity](https://ebs.arrow.com)
+    **Core Portals:**
+    * 🔗 [OMT Ninja](https://omt-ninja.arrow.com)
+    * 🔗 [ETQ Portal](https://etq.arrow.com)
+    * 🔗 [Oracle Unity](https://ebs.arrow.com)
+    * 🔗 [Salesforce](https://arrow.my.salesforce.com)
     """)
     st.divider()
-    st.subheader("📥 Data Import")
-    uploaded_files = st.file_uploader("Upload SOP PDFs", type="pdf", accept_multiple_files=True)
-    if uploaded_files and st.button("Index Files"):
-        # This is where your AI extraction logic lives
-        st.info("Extracting data... Please wait.")
-        st.rerun()
-    if st.button("🗑️ Clear All Data"):
+    if st.button("🗑️ Reset Search Index"):
         if os.path.exists(DB_FILE): os.remove(DB_FILE)
         st.session_state.df = pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
         st.rerun()
 
-# --- 4. SEARCH INTERFACE ---
-st.title("🏹 Arledge Ops Search")
-st.write("Enter a keyword to find the exact step-by-step procedure.")
+# --- 4. THE SEARCH INTERFACE ---
+st.title("Operational Procedures Search")
+query = st.text_input("", placeholder="Type to search (e.g., 'Delink', 'Dropship', 'ETQ')...")
 
-# Search Bar
-query = st.text_input("", placeholder="Search e.g. 'Delink', 'RMA', 'Oracle Error'...")
-
-# --- 5. DYNAMIC RESULTS (Only show if typing) ---
+# --- 5. SEARCH RESULTS (Only appears when typing) ---
 if query:
     df = st.session_state.df
-    # Search logic across all columns
     mask = df.apply(lambda row: query.lower() in row.astype(str).str.lower().values, axis=1)
     results = df[mask]
     
     if not results.empty:
-        st.success(f"Found {len(results)} relevant procedures:")
+        st.write(f"Displaying {len(results)} matches:")
         for _, row in results.iterrows():
-            with st.container():
-                st.markdown(f"""
-                <div class="sop-card">
-                    <span class="source-label">File: {row['File_Source']}</span>
-                    <span class="system-label">{row['System']}</span>
-                    <h2 style="margin: 5px 0;">{row['Process']}</h2>
-                    <div class="step-box">
-                        <strong>STEPS:</strong><br>{row['Instructions']}
-                    </div>
-                    <p style="color: #5f6368; font-size: 0.9rem;"><strong>Why we do this:</strong> {row['Rationale']}</p>
+            st.markdown(f"""
+            <div class="sop-card">
+                <span class="source-tag">{row['File_Source']}</span>
+                <span class="system-label">{row['System']}</span>
+                <h2 style="margin-top: 5px; color: #1a202c;">{row['Process']}</h2>
+                <div class="step-box">
+                    <strong>Standard Operating Procedure:</strong><br>{row['Instructions']}
                 </div>
-                """, unsafe_allow_html=True)
+                <p style="font-size: 0.9rem; color: #4a5568;"><strong>Business Rationale:</strong> {row['Rationale']}</p>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        st.error("No matches found. Try a different keyword.")
+        st.warning("No procedures found for that keyword.")
 else:
-    # This is the "Professional Home Page" when not searching
-    st.info("The system is ready. Use the search bar above to begin.")
+    # CLEAN HOME PAGE
+    st.info("System Ready. Please enter a keyword above to view specific process steps.")
