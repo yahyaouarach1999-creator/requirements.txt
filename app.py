@@ -85,7 +85,7 @@ df = load_db()
 st.title("OMT Knowledge Base")
 
 # Search Logic (Permanent table removed from home screen)
-query = st.text_input("Search Procedures, Alerts, or Collectors", placeholder="Search by keyword (e.g., 'Alpha', 'VAT', 'Fernando')...")
+query = st.text_input("Search Procedures, Alerts, or Collectors", placeholder="Search by keyword (e.g., 'Alpha', 'VAT', 'Alexis')...")
 
 if query:
     mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
