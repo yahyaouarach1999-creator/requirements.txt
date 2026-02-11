@@ -1,6 +1,6 @@
 System,Process,Instructions,Rationale,File_Source
-Warehouse (ETQ),Sure Ship Domestic,"1. Applies to Reno V[XX] whse codes. 2. Status 'Released' or 'Picked' for > 2 days. 3. ETQ Portal > Module 'eRequests'. 4. Select 'Sure Ship Domestic - Draft'. 5. Host: 'AC Prod'.",Expedites stalled Reno picking.,SOP 7
-Warehouse (ETQ),Sure Ship International,"1. Applies to Reno CDR/CDM codes. 2. Status 'Released' or 'Picked' > 2 days. 3. ETQ Portal > 'Sure Ship International - Draft'. 4. Host: 'AC Prod'.",Expedites international export docs.,SOP 7
+Warehouse (ETQ),Sure Ship Domestic,"1. Reno V[XX] whse codes. 2. Status 'Released' or 'Picked' > 2 days. 3. ETQ Portal > Module 'eRequests'. 4. Select 'Sure Ship Domestic - Draft'. 5. Host: 'AC Prod'.",Expedites stalled Reno picking.,SOP 7
+Warehouse (ETQ),Sure Ship International,"1. Reno CDR/CDM codes. 2. Status 'Released' or 'Picked' > 2 days. 3. ETQ Portal > 'Sure Ship International - Draft'. 4. Host: 'AC Prod'.",Expedites international export docs.,SOP 7
 Warehouse (ETQ),Receiving Expedite,"1. Status 'Awaiting Receipt' > 3 days. 2. ETQ Portal > 'Receiving Expedite - Draft'. 3. Fill SO#. 4. Signed By: Use 'N/A' for DHL.",Prioritizes inventory entry for delivered stock.,SOP 7
 Hong Kong Whse,HK Expedite (CDH),"1. CDH facility 'Awaiting Receipt' > 3 days. 2. Open Salesforce Case. 3. Email URGENTRECEIVING.HK@arrowasia.com.",Bypasses queues at HK cross-dock.,SOP 7
 Venlo Whse,Venlo Support,"1. Sure Ship: ecommerce.dlc.emea@arrow.com. 2. Receiving: business.support.pdc.emea@arrow.com.",Direct escalation for EMEA logistics.,SOP 7
@@ -18,3 +18,6 @@ Supplier Portal,Credentials: OnlineComp,"User: support@verical.com | Pass: suppo
 Supplier Portal,Credentials: Newark,"Username: Verical | Password: Vericalnewark","Order tracking access.",Internal Credentials
 Supplier Portal,Credentials: PEI Genesis,"Login: operations@verical.com | Password: Arrow_OMT","Order tracking access.",Internal Credentials
 Supplier Portal,Credentials: Arrow/Verical,"Login: operations@verical.com | Password: Verical_OMT","Internal admin operations.",Internal Credentials
+Collections,Alpha Split: Flores Alexis,"Assigned Alphas: A, B, T, W, C, H","Primary Finance Contact",Internal Spreadsheet
+Collections,Alpha Split: Robles Iliana,"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z","Primary Finance Contact",Internal Spreadsheet
+Collections,Alpha Split: Sanchez Valeria,"Assigned Alphas: L, P, M, N, O, R/G","Primary Finance Contact",Internal Spreadsheet
