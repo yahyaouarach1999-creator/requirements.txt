@@ -2,65 +2,75 @@ import streamlit as st
 import pandas as pd
 import os
 
-# 1. SETUP
-st.set_page_config(page_title="Arledge OMT Command", layout="wide", page_icon="🏹")
+# 1. PAGE SETUP
+st.set_page_config(page_title="OMT Command Center", layout="wide")
 
-# Professional Styles
+# Professional Styling
 st.markdown("""
 <style>
-    .sop-card { border: 1px solid #e1e4e8; padding: 20px; border-radius: 8px; background-color: #ffffff; margin-bottom: 20px; }
-    .step-box { background-color: #f1f3f4; border-left: 5px solid #1a73e8; padding: 15px; margin: 10px 0; white-space: pre-wrap; color: #202124; }
-    .system-label { color: #d93025; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; }
+    .stApp { background-color: #ffffff; }
+    .result-card { 
+        border: 1px solid #e1e4e8; 
+        padding: 20px; 
+        border-radius: 8px; 
+        background-color: #fcfcfc; 
+        margin-bottom: 20px;
+    }
+    .instructions { 
+        background-color: #f1f3f4; 
+        padding: 15px; 
+        border-left: 5px solid #1a73e8; 
+        white-space: pre-wrap;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. LOAD DATA
+# 2. LOAD DATABASE
 DB_FILE = "master_ops_database.csv"
 
-def get_data():
+@st.cache_data
+def load_db():
     if os.path.exists(DB_FILE):
-        df = pd.read_csv(DB_FILE).fillna("")
-        # Clean the data to ensure search works
-        df = df.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
-        return df
+        return pd.read_csv(DB_FILE).fillna("")
     return pd.DataFrame()
 
-df = get_data()
+df = load_db()
 
-# 3. SIDEBAR LINKS
+# 3. SIDEBAR NAVIGATION
 with st.sidebar:
-    st.title("🏹 Tool Links")
+    st.title("🏹 OMT Tools")
     st.markdown("[🥷 OMT Ninja](https://omt-ninja.arrow.com) | [📋 ETQ Portal](https://etq.arrow.com)")
     st.markdown("[💼 Salesforce](https://arrow.my.salesforce.com) | [☁️ Oracle Unity](https://ebs.arrow.com)")
-    st.divider()
-    if st.button("Refresh Database"): st.rerun()
+    if st.button("Clear Cache / Reload Data"):
+        st.cache_data.clear()
+        st.rerun()
 
 # 4. SEARCH INTERFACE
-st.title("Operational Procedures Search")
-query = st.text_input("", placeholder="Search e.g. 'Delink', 'Sure Ship', 'BOM'...")
+st.title("Search Procedures")
+query = st.text_input("", placeholder="Search by keyword (e.g. 'Delink', 'Reno', 'RMA')...")
 
-# 5. SEARCH RESULTS
+# 5. SEARCH LOGIC (Only runs if user types)
 if query:
     if not df.empty:
-        # Case-insensitive search across ALL columns
-        mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
-        results = df[mask]
+        # This checks every column for the keyword, ignoring uppercase/lowercase
+        results = df[df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)]
         
         if not results.empty:
-            st.write(f"Found {len(results)} procedures:")
+            st.write(f"Showing {len(results)} results:")
             for _, row in results.iterrows():
                 st.markdown(f"""
-                <div class="sop-card">
-                    <span style="float:right; font-size:0.7rem; color:grey;">{row['File_Source']}</span>
-                    <span class="system-label">{row['System']}</span>
-                    <h2>{row['Process']}</h2>
-                    <div class="step-box"><strong>INSTRUCTIONS:</strong><br>{row['Instructions']}</div>
-                    <p><strong>Rationale:</strong> {row['Rationale']}</p>
+                <div class="result-card">
+                    <small style="color:gray; float:right;">Source: {row['File_Source']}</small>
+                    <b style="color:#d93025;">{row['System']}</b>
+                    <h3>{row['Process']}</h3>
+                    <div class="instructions"><b>PROCEDURE STEPS:</b><br>{row['Instructions']}</div>
+                    <p style="margin-top:10px;"><i>Rationale: {row['Rationale']}</i></p>
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.error(f"No results found for '{query}'. Try a simpler keyword.")
+            st.error(f"No results found for '{query}'. Please check your spelling.")
     else:
-        st.warning("Database file not found. Please ensure 'master_ops_database.csv' is in your project folder.")
+        st.warning("Database file not found. Ensure 'master_ops_database.csv' is in the folder.")
 else:
-    st.info("System Ready. Please type a keyword to see the full procedure.")
+    # Home Page state before searching
+    st.info("The Command Center is ready. Enter a keyword above to find the exact steps.")
