@@ -5,11 +5,15 @@ import os
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- STRICT SECURITY ---
-# Replace with your actual Arrow email
-AUTHORIZED_USER = "yahya.ouarach@arrow.com" 
-                = "hanane.badr@arrow.com"
-# Styling: Clean White Professional
+# --- STRICT SECURITY WHITELIST ---
+# No spaces at the start of these lines
+AUTHORIZED_USERS = [
+    "yahya.ouarach@arrow.com",
+    "hanane.badr@arrow.com",
+    "mafernandez@arrow.com"
+]
+
+# Styling: Professional White
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff !important; color: #000000 !important; }
@@ -34,24 +38,26 @@ if 'auth' not in st.session_state:
 # 2. LOGIN GATE
 if not st.session_state.auth:
     st.title("🏹 Arledge")
-    st.subheader("Secure Knowledge Center")
+    st.subheader("Authorized Access Only")
     email_input = st.text_input("Enter Arrow Email").lower().strip()
     
-    if st.button("Enter System"):
-        if email_input == AUTHORIZED_USER:
+    if st.button("Verify Identity"):
+        if email_input in AUTHORIZED_USERS:
             st.session_state.auth = True
+            st.session_state.user = email_input
             st.rerun()
         else:
-            st.error("Access Denied.")
+            st.error("Access Denied: Email not on authorized whitelist.")
     st.stop()
 
-# 3. SIDEBAR: NAVIGATION & UPDATED TOOLS
+# 3. SIDEBAR: TOOLS & REPORTING
 with st.sidebar:
     st.title("🏹 Resource Hub")
+    st.caption(f"Logged in: {st.session_state.user}")
     st.divider()
     
     st.markdown("### ⚡ Quick Access")
-    st.markdown(f"• [☁️ Oracle Unity (Direct)](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
+    st.markdown("• [☁️ Oracle Unity (Direct)](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
     st.markdown("• [🚩 Salesforce: My Cases](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
     st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
     st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
@@ -59,13 +65,13 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### ⚠️ Report an Issue")
-    st.markdown(f"Contact Admin: [{AUTHORIZED_USER}](mailto:{AUTHORIZED_USER})")
+    st.markdown(f"Contact Admin: [hanane.badr@arrow.com](mailto:hanane.badr@arrow.com)")
     
     if st.button("Logout"):
         st.session_state.auth = False
         st.rerun()
 
-# 4. SEARCH & DATABASE
+# 4. DATABASE & SEARCH
 @st.cache_data
 def load_db():
     if os.path.exists("master_ops_database.csv"):
@@ -74,7 +80,7 @@ def load_db():
 
 df = load_db()
 
-st.title("Search Procedures")
+st.title("OMT Knowledge Base")
 query = st.text_input("", placeholder="Search procedures, credentials, or collectors...")
 
 if query:
