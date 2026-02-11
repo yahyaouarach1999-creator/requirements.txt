@@ -21,3 +21,26 @@ Supplier Portal,Credentials: Arrow/Verical,"Login: operations@verical.com | Pass
 Collections,Alpha Split: Flores Alexis,"Assigned Alphas: A, B, T, W, C, H","Primary Finance Contact",Internal Spreadsheet
 Collections,Alpha Split: Robles Iliana,"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z","Primary Finance Contact",Internal Spreadsheet
 Collections,Alpha Split: Sanchez Valeria,"Assigned Alphas: L, P, M, N, O, R/G","Primary Finance Contact",Internal Spreadsheet
+System,Process,Instructions,Rationale,File_Source
+Alerts,B2B Linkage / LOC Hold,"Search for core account with same Ship To address and 'Cos N'. Verify credit limit and digital account. If no response to email, check for ISR; if none, cancel order.","Resolves connectivity/credit mapping blocks.",achraf @ Work.pdf
+Alerts,HTS / Import Code,"Leave note and wait 24H. If unresolved, send canned email requesting PN, Description, and Manufacturer. (Contact: dinesh.babu@arrow.com)","Required for customs clearance.",achraf @ Work.pdf
+Alerts,ECCN / Trade Comp,"Wait 24-48H for review. If status persists, open MyConnect Trade Compliance ticket. Reviewed by Trade Compliance team.","Export regulation compliance.",achraf @ Work.pdf
+Alerts,Hard-Block / Credit,"Send immediately to Finance/assigned Collector. Send reminder at 1 week; cancel at 2 weeks if no reply.","Financial risk management.",achraf @ Work.pdf
+Alerts,SQR Validation (Venlo),"Check BND cost vs Resale price. Edit resale price to match cost, or delete alert if already equal. Must be done first thing in the morning.","Allows Venlo orders to ship.",achraf @ Work.pdf
+Alerts,Stock Out / OOSRDC,"Use canned text OOSRDC for cancellation. Differentiate logic between Arrow and Verical orders.","Inventory discrepancy handling.",achraf @ Work.pdf
+Alerts,VAT EU/UK,"EU: Wait 24H before checking validity. UK: Check validity immediately.","Tax compliance.",achraf @ Work.pdf
+Cancellations,Reno W/H (V36 V99 V37 V72),"Orders from Reno warehouses can be canceled without issues.","Standard domestic policy.",achraf @ Work.pdf
+Cancellations,Asia W/H (CDV CDR CDH),"1. Verify PO creation. 2. Confirm if stock sent. 3. Request supplier cancellation. 4. Wait for confirmation. 5. Cancel in AC SWB.","Complex cross-dock policy.",achraf @ Work.pdf
+Cancellations,Warehouse 1N2 (Dropship),"If DID exists: Request via email. If no DID: Cancel in EMEA/APAC SWB, then AC SWB, and refund.","Third-party coordination.",achraf @ Work.pdf
+Contacts,Proof of Payment,"Forward to: vericalcia@arrow.com, wireremit@arrow.com, vericalremits@arrow.com. (CC assigned collector)","Payment verification.",Here you can find Contacts.pdf
+Contacts,APAC Inventory/Cancel,"Contact: dongsheng.sun@arrowasia.com or JB.SUPPORT@arrowasia.com.","Asia-specific escalation.",Here you can find Contacts.pdf
+Contacts,W/H A01 (HK/SZ),"Contact: JEFF.KWOK@arrowasia.com","Regional Warehouse Support",Here you can find Contacts.pdf
+Contacts,W/H A03 (SZ),"Contact: dongsheng.sun@arrowasia.com (CC: sz-dhaurgentbillinguserlist@arrowasia.com)","Regional Warehouse Support",Here you can find Contacts.pdf
+Contacts,W/H B05/D51/A47 (SG/MY),"Contact: JB.SHIPPING@arrowasia.com & KHATIJAH.HAMIRUDIN@arrowasia.com","Regional Warehouse Support",Here you can find Contacts.pdf
+Contacts,HK Receiving,"Contact: Issac.Chan@arrow.com or URGENTRECEIVING.HK@arrowasia.com","Receiving escalation.",Here you can find Contacts.pdf
+Collections,Alpha: A B T W,"Collector: Fernando Solana (Fernando.Solana@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
+Collections,Alpha: # Signs D Q U V X Y Z,"Collector: Daniel Aguirre (daniel.aguirre@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
+Collections,Alpha: CH,"Collector: Diaz, Mariana (mariana.diaz1@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
+Collections,Alpha: E F,"Collector: Sofia Panduro (sofia.panduro@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
+Collections,Alpha: I J K,"Collector: Robles, Iliana (liana.Robles@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
+Collections,Alpha: L P S M N O R/G,"Collector: Valeria Sanchez (Valeria.Sanchez@arrow.com)","Finance Alpha Split",Here you can find Contacts.pdf
