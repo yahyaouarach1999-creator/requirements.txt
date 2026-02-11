@@ -52,3 +52,37 @@ Warehouse (ETQ),Order Cancellation,"1. Open ETQ Portal > 'Cancel Sales Order - D
 IT Support,Blocked User Status,"1. For 'Access Denied' or 'User Blocked'.\n2. Raise ticket in My Connect under 'Digital Issue'.\n3. Provide email and screenshot.",Restores access for blocked users.,SOP 7 - Common Cases.pdf
 Warehouse (WMS),Document Reprints,"1. Reno Packing List: https://wms-prod.arrow.com/PAWMSReprints/\n2. MFR CoC (Non-Military): https://arrow.tfaforms.net/4865283\n3. Military: arrowcrm.my.salesforce-sites.com/arrowservices",Automated customer document requests.,SOP 7 - Common Cases.pdf
 Cross Dock,Discrepancy Process,"1. Short: Inform supplier, amend Unity Qty, refund.\n2. Over: Inform supplier, create stand-alone PO, request RMA.\n3. Damaged: Cancel line, refund, request RMA.",Physical stock error handling.,PLAYBOOK Digital OMT.pdf
+System,Process,Instructions,Rationale,File_Source
+Finance,Collector: US Standard,ARROWUS_AR@arrow.com - US/Canada non-digital accounts.,Primary US Finance.,PLAYBOOK Digital OMT
+Finance,Collector: US Digital,DigitalAR@arrow.com - Specific for web-based customer payment issues.,Specialized US Finance.,PLAYBOOK Digital OMT
+Finance,Collector: UK/Ireland,AR_UK@arrow.com - UK/IRE regional intercompany releases.,Regional EMEA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: DACH Region,AR_DACH@arrow.com - Germany/Austria/Switzerland releases.,Regional EMEA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: France,AR_FR@arrow.com - French regional intercompany releases.,Regional EMEA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: Italy,AR_IT@arrow.com - Italian regional intercompany releases.,Regional EMEA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: Nordics,AR_Nordics@arrow.com - Nordic regional intercompany releases.,Regional EMEA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: ASIA HK,AR_China@arrow.com - Contact for CDH (Hong Kong) whse billing.,Regional ASIA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: ASEAN/India,AR_ASEAN@arrow.com - Singapore/India regional releases.,Regional ASIA Finance.,PLAYBOOK Digital OMT
+Finance,Collector: Taiwan,AR_Taiwan@arrow.com - Taiwan regional intercompany releases.,Regional ASIA Finance.,PLAYBOOK Digital OMT
+Oracle (Unity),Delink Invoice Process,"1. Email: delink_and_rematch_invoices@arrow.com\n2. Use Template: 'Could you please assist with delinking? Received [Reason] for WEB-xxxx - xx pcs instead of xx pcs.'\n3. Wait for confirmation, amend Unity, notify team to re-bill.",Required for 'Billed' orders.,PLAYBOOK Digital OMT
+Third Party,Replacement SO Creation,"1. New SO with original info.\n2. MFR set to 3rd party (e.g., MOLEX_WAL).\n3. Resale $0.00, remove Freight.\n4. Book SO, place on 'Manual Header Hold'.\n5. Wait 30 mins for PO# in SWB.",Ensures supplier is paid.,Replacement SO Process
+Third Party,AP Confirmation,"Email AP with new Dropship PO#.\nSubject: 'Dropship Order D00... - Please confirm receipt'\nBody: 'Confirm receipt of replacement to pay [Supplier] for Invoice #...'\nCC Sophia Ciarlo.",Matches payment to new PO.,Replacement SO Process
+Third Party,Vendor Cancel: Waldom,"Email Kelly Anderson (Kellys@waldom.com).\nMark as 'Urgent' to cancel original incorrect PO.",Stops double shipment.,Replacement SO Process
+Third Party,Vendor Cancel: Air Electro,"Email Lauren Buckley (LBuckley@airelectro.com).\nMark as 'Urgent' to cancel original incorrect PO.",Stops double shipment.,Replacement SO Process
+Third Party,Vendor Cancel: PEI Genesis,"Teams message POC daily.\nLimit: 5 POs max per day.",Stops double shipment.,Replacement SO Process
+Warehouse (ETQ),Sure Ship Domestic,"Reno [VXX] orders > 2 days in 'Released/Picked'.\nETQ Portal > 'Sure Ship Domestic - Draft'.\nEnter SO# and Host 'AC Prod'.",Expedites Reno picking.,SOP 7
+Warehouse (ETQ),Sure Ship International,"Reno Cross-dock (CDR/CDM) > 2 days.\nETQ Portal > 'Sure Ship International - Draft'.\nHost: 'AC Prod'.",Expedites documentation.,SOP 7
+Warehouse (ETQ),Receiving Expedite,"Items 'Awaiting Receipt' > 3 days.\nETQ Portal > 'Receiving Expedite - Draft'.\nSO# and signed-by (use 'N/A' for DHL).",Prioritizes stock entry.,SOP 7
+Hong Kong Whse,HK Receiving Request,"CDH facility orders > 3 days 'Awaiting Receipt'.\nEmail: URGENTRECEIVING.HK@arrowasia.com\nProvide SO#, Part, Tracking.",Bypasses HK queues.,SOP 7
+Venlo Whse,Venlo Logistics,"1. Sure Ship: ecommerce.dlc.emea@arrow.com\n2. Receiving: business.support.pdc.emea@arrow.com",EMEA whse escalation.,SOP 7
+Warehouse (WMS),Nogales V90 CoC,"Email: verical-logistics@verical.com\nCC: amunoz@arrow.com, jawells@arrow.com\nTemplate: Provide MFG CoC for WEB-SO: [SO#], PO: [PO#], MPN: [MPN].",Manual V90 CoC.,SOP 7
+Warehouse (WMS),Military Part CoC,"Whse: VM5, V37, V38, GN4, V29, V75, V91, V86, VAA, VAN, VAP, VN8.\nLink: arrowcrm.my.salesforce-sites.com/arrowservices",Compliance requirement.,SOP 7
+IT Support,Price Break Issue,"Qty changes where price didn't update.\nMy Connect > 'Digital Issue'.\nCategory: 'Pricing/Resale Discrepancy'.",Pricing engine refresh.,SOP 7
+Finance,PayPal/CC Refund,"My Connect > 'Digital Business Operations Request Form'.\nCategory: 'Refund Request'. Provide SO and proof.",Manual billing glitch fix.,SOP 7
+IT Support,WMS / DID Error,"Raise My Connect 'Digital Issue'.\nProvide Whse and DID.\nRequest 'Drop New DID'.\nDelete backorder alert in Unity.",Resolves DID blocks.,SOP 7
+Oracle (Unity),BOM Build Check,"Whse V90. Filter 'Not released'.\nUse '+' icon to view components and SSD dates.",Tracks builds before ship.,PLAYBOOK Digital OMT
+Oracle (Unity),Hazmat Part,"Identify Hazmat alert.\nVerify Ship Method compatibility.\nEnsure 'Ground' for batteries/chemicals.",Dangerous goods safety.,PLAYBOOK Digital OMT
+Oracle (Unity),Missing Ship Method,"1. Check Navision mailbox.\n2. Unity > Line Details > Shipping.\n3. Enter Carrier/Account from PDF.",Fixes freight billing.,PLAYBOOK Digital OMT
+IT Support,Blocked User,"Ticket: 'Digital Issue' in My Connect.\nAttach screenshot of 'Access Denied' error.",Security restoration.,SOP 7
+Logistics,Short Shipment,"Inform supplier, amend Unity quantity, refund customer.",Standard stock error.,PLAYBOOK Digital OMT
+Logistics,Over Shipment,"Inform supplier, create standalone PO, request RMA.",Standard stock error.,PLAYBOOK Digital OMT
+Logistics,Damaged Part,"Cancel line, refund customer, request RMA from supplier.",Standard stock error.,PLAYBOOK Digital OMT
