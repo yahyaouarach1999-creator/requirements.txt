@@ -6,9 +6,10 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- STRICT SECURITY ---
-AUTHORIZED_USER = "your_actual_email@arrow.com" 
+# Replace with your actual Arrow email
+AUTHORIZED_USER = "yahya.ouarach@arrow.com" 
 
-# Styling: Professional White & High Visibility
+# Styling: Clean White Professional
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff !important; color: #000000 !important; }
@@ -44,21 +45,21 @@ if not st.session_state.auth:
             st.error("Access Denied.")
     st.stop()
 
-# 3. SIDEBAR: DIRECT SYSTEM LINKS
+# 3. SIDEBAR: NAVIGATION & UPDATED TOOLS
 with st.sidebar:
     st.title("🏹 Resource Hub")
     st.divider()
     
     st.markdown("### ⚡ Quick Access")
-    st.markdown("• [🚩 Salesforce: My Open Cases](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.markdown(f"• [☁️ Oracle Unity (Direct)](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
+    st.markdown("• [🚩 Salesforce: My Cases](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
     st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
     st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
-    st.markdown("• [🥷 OMT Ninja](https://omt-ninja.arrow.com)")
-    st.markdown("• [☁️ Oracle Unity](https://ebs.arrow.com)")
+    st.markdown("• [🛠 MyConnect IT](https://arrow.service-now.com/myconnect)")
     
     st.divider()
-    st.markdown("### ⚠️ Support")
-    st.markdown("• [My Connect IT Support](https://arrow.service-now.com/myconnect)")
+    st.markdown("### ⚠️ Report an Issue")
+    st.markdown(f"Contact Admin: [{AUTHORIZED_USER}](mailto:{AUTHORIZED_USER})")
     
     if st.button("Logout"):
         st.session_state.auth = False
