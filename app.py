@@ -6,9 +6,9 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- STRICT SECURITY ---
-AUTHORIZED_USER = "yahya.ouarach@arrow.com" 
+AUTHORIZED_USER = "your_actual_email@arrow.com" 
 
-# Styling: Professional White
+# Styling: Professional White & High Visibility
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff !important; color: #000000 !important; }
@@ -22,8 +22,7 @@ st.markdown("""
         background-color: #f1f3f4; padding: 15px; 
         border-left: 5px solid #005a9c; white-space: pre-wrap; color: #202124 !important; 
     }
-    /* Sidebar text color */
-    [data-testid="stSidebar"] { background-color: #f8f9fa !important; }
+    [data-testid="stSidebar"] { background-color: #f8f9fa !important; border-right: 1px solid #dee2e6; }
     label, p, span, h1, h2, h3 { color: #000000 !important; }
 </style>
 """, unsafe_allow_html=True)
@@ -34,39 +33,38 @@ if 'auth' not in st.session_state:
 # 2. LOGIN GATE
 if not st.session_state.auth:
     st.title("🏹 Arledge")
-    st.subheader("Secure Access Gateway")
+    st.subheader("Secure Knowledge Center")
     email_input = st.text_input("Enter Arrow Email").lower().strip()
     
-    if st.button("Access System"):
+    if st.button("Enter System"):
         if email_input == AUTHORIZED_USER:
             st.session_state.auth = True
             st.rerun()
         else:
-            st.error("Unauthorized Access.")
+            st.error("Access Denied.")
     st.stop()
 
-# 3. SIDEBAR: TOOLS & REPORTING
+# 3. SIDEBAR: DIRECT SYSTEM LINKS
 with st.sidebar:
     st.title("🏹 Resource Hub")
     st.divider()
     
-    st.markdown("### 🛠 Internal Tools")
+    st.markdown("### ⚡ Quick Access")
+    st.markdown("• [🚩 Salesforce: My Open Cases](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
+    st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
     st.markdown("• [🥷 OMT Ninja](https://omt-ninja.arrow.com)")
-    st.markdown("• [📋 ETQ Portal](https://etq.arrow.com)")
-    st.markdown("• [💼 Salesforce](https://arrow.my.salesforce.com)")
     st.markdown("• [☁️ Oracle Unity](https://ebs.arrow.com)")
     
     st.divider()
-    st.markdown("### ⚠️ Report an Issue")
-    st.markdown("Use this for technical glitches:")
+    st.markdown("### ⚠️ Support")
     st.markdown("• [My Connect IT Support](https://arrow.service-now.com/myconnect)")
     
-    st.divider()
     if st.button("Logout"):
         st.session_state.auth = False
         st.rerun()
 
-# 4. DATA & SEARCH
+# 4. SEARCH & DATABASE
 @st.cache_data
 def load_db():
     if os.path.exists("master_ops_database.csv"):
@@ -75,7 +73,7 @@ def load_db():
 
 df = load_db()
 
-st.title("Search Knowledge Center")
+st.title("Search Procedures")
 query = st.text_input("", placeholder="Search procedures, credentials, or collectors...")
 
 if query:
@@ -89,5 +87,3 @@ if query:
                 <div class="instructions">{row['Instructions']}</div>
             </div>
             """, unsafe_allow_html=True)
-    else:
-        st.warning("No results found.")
