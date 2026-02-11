@@ -5,12 +5,12 @@ import os
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# Professional Clean White Styling
+# Clean Professional White Styling
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff !important; color: #000000 !important; }
     
-    /* Search Bar Visibility */
+    /* Input Styling */
     input {
         background-color: #ffffff !important;
         color: #000000 !important;
@@ -27,7 +27,7 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     
-    /* Instruction Box - Professional Blue-Left Border */
+    /* Instruction Box */
     .instructions { 
         background-color: #f1f3f4; 
         padding: 18px; 
@@ -36,14 +36,13 @@ st.markdown("""
         color: #202124 !important; 
     }
 
-    /* Force visibility of all labels */
-    label, p, span, h1, h2, h3 { color: #000000 !important; }
-    
-    /* Sidebar styling */
+    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background-color: #f8f9fa !important;
         border-right: 1px solid #dee2e6;
     }
+    
+    label, p, span, h1, h2, h3 { color: #000000 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -62,10 +61,10 @@ if not st.session_state.auth:
             st.session_state.user = user_email
             st.rerun()
         else:
-            st.error("Invalid Domain. Use your corporate @arrow.com email.")
+            st.error("Access restricted to @arrow.com users.")
     st.stop()
 
-# 3. LOAD FULL DATABASE
+# 3. DATA LOADING
 DB_FILE = "master_ops_database.csv"
 @st.cache_data
 def load_db():
@@ -75,17 +74,41 @@ def load_db():
 
 df = load_db()
 
-# 4. SIDEBAR NAVIGATION & TOOLS
+# 4. SIDEBAR NAVIGATION, TOOLS & PORTALS
 with st.sidebar:
-    st.title("🏹 Arledge Tools")
-    st.caption(f"Logged in as: {st.session_state.user}")
+    st.title("🏹 Arledge")
+    st.caption(f"User: {st.session_state.user}")
     st.divider()
     
-    st.markdown("### 🛠 Quick Links")
+    st.markdown("### 🛠 Internal Tools")
     st.markdown("• [🥷 OMT Ninja](https://omt-ninja.arrow.com)")
     st.markdown("• [📋 ETQ Portal](https://etq.arrow.com)")
     st.markdown("• [💼 Salesforce](https://arrow.my.salesforce.com)")
     st.markdown("• [☁️ Oracle Unity](https://ebs.arrow.com)")
+    
+    st.divider()
+    with st.expander("🔑 Supplier Portal Logins"):
+        st.markdown("""
+        **Online Components**
+        - User: support@verical.com
+        - Pass: support
+        
+        **Newark Element 14**
+        - User: Verical
+        - Pass: Vericalnewark
+        
+        **Verical.com**
+        - User: operations@verical.com
+        - Pass: Verical_OMT
+        
+        **Arrow.com**
+        - User: weboperations@arrow.com
+        - Pass: Arrow.com_OMT
+        
+        **PEI Genesis**
+        - User: operations@verical.com
+        - Pass: Arrow_OMT
+        """)
     
     st.divider()
     if st.button("Sign Out"):
@@ -94,23 +117,21 @@ with st.sidebar:
 
 # 5. SEARCH INTERFACE
 st.title("Search Procedures")
-query = st.text_input("", placeholder="Search 100+ OMT processes, collectors, or warehouse codes...")
+query = st.text_input("", placeholder="Search procedures, collectors, or logins...")
 
 if query:
     results = df[df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)]
     if not results.empty:
-        st.write(f"Showing {len(results)} matches:")
         for _, row in results.iterrows():
             st.markdown(f"""
             <div class="result-card">
                 <span style="color:#005a9c; font-weight:bold; text-transform:uppercase; font-size:0.75rem;">{row['System']}</span>
                 <h2 style="margin-top:5px; margin-bottom:12px;">{row['Process']}</h2>
-                <div class="instructions"><b>PROCEDURE:</b><br>{row['Instructions']}</div>
+                <div class="instructions">{row['Instructions']}</div>
                 <p style="margin-top:10px; font-size:0.85rem; color:#444;"><b>Rationale:</b> {row['Rationale']}</p>
-                <small style="color:#888;">File: {row['File_Source']}</small>
             </div>
             """, unsafe_allow_html=True)
     else:
         st.error(f"No results found for '{query}'.")
 else:
-    st.info("Type a keyword above (e.g., 'Waldom', 'Venlo', 'CoC', 'Price') to see the steps.")
+    st.info("Enter a keyword to search the OMT Knowledge Base.")
