@@ -7,7 +7,7 @@ st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- STRICT SECURITY ---
 # Replace with your actual Arrow email
-AUTHORIZED_USER = "your_actual_email@arrow.com" 
+AUTHORIZED_USER = "yahya.ouarach@arrow.com" 
 
 # Styling: Clean White & High Contrast
 st.markdown("""
