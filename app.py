@@ -5,36 +5,53 @@ import os
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- IMPROVED ACCESS CONTROL ---
-# Combined lists correctly to prevent overwriting
+# --- FIXED ACCESS CONTROL ---
+# No more overwriting; all admins and users are in clear, separate lists
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
-USER_EMAILS = ["Nassim.Bouzaid@arrow.com"]
+USER_EMAILS = ["nassim.bouzaid@arrow.com"] # Case-insensitive handled by .lower()
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# Styling: High-End Corporate UI
+# Styling: High-Contrast Corporate UI (Fixes "Black Button" issue)
 st.markdown("""
 <style>
+    /* Main Background */
     .stApp { background-color: #ffffff; color: #000000; }
+    
+    /* Result Card Styling */
     .result-card { 
-        border: 1px solid #e1e4e8; padding: 24px; border-radius: 12px; 
+        border: 1px solid #d1d5db; padding: 24px; border-radius: 12px; 
         background-color: #ffffff; margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        transition: transform 0.2s;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-    .result-card:hover { border-color: #005a9c; box-shadow: 0 6px 12px rgba(0,0,0,0.05); }
+    
+    /* Instructions Styling (Lightened) */
     .instructions { 
-        background-color: #f8f9fa; padding: 18px; border-left: 6px solid #005a9c; 
-        white-space: pre-wrap; color: #1a1a1a !important; 
-        font-family: 'Consolas', 'Monaco', monospace; font-size: 0.95rem;
-        border-radius: 0 8px 8px 0; margin-top: 10px;
+        background-color: #f9fafb; padding: 18px; border-left: 6px solid #005a9c; 
+        white-space: pre-wrap; color: #111827 !important; 
+        font-family: 'Consolas', monospace; font-size: 1rem;
+        border-radius: 0 8px 8px 0; border-top: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;
     }
+
+    /* FIX: Button Visibility (No longer black/hidden) */
+    .stButton > button {
+        background-color: #ffffff !important;
+        color: #005a9c !important;
+        border: 2px solid #005a9c !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        height: 3em !important;
+        width: 100% !important;
+    }
+    .stButton > button:hover {
+        background-color: #005a9c !important;
+        color: #ffffff !important;
+    }
+
+    /* Admin Badge */
     .admin-badge {
-        background-color: #dc3545; color: white; padding: 3px 10px;
-        border-radius: 20px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px;
-    }
-    .system-tag {
-        background-color: #eef4ff; color: #005a9c; padding: 4px 12px;
-        border-radius: 15px; font-size: 0.75rem; font-weight: 600;
+        background-color: #e11d48; color: white; padding: 4px 10px;
+        border-radius: 20px; font-size: 0.75rem; font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -44,28 +61,28 @@ if 'auth' not in st.session_state:
     st.session_state.user = ""
     st.session_state.is_admin = False
 
-# 2. LOGIN GATE (Improved centered layout)
+# 2. LOGIN GATE (Fixed Nassim's Access)
 if not st.session_state.auth:
     _, center, _ = st.columns([1, 1.5, 1])
     with center:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Arrow_Electronics_logo.svg/1280px-Arrow_Electronics_logo.svg.png", width=200)
-        st.title("🏹 Arledge Hub")
-        email_input = st.text_input("Enter Arrow Email").lower().strip()
-        if st.button("Sign In", use_container_width=True):
+        st.title("🏹 Arledge Login")
+        email_input = st.text_input("Arrow Email Address").lower().strip()
+        if st.button("Sign In"):
             if email_input in ALL_AUTHORIZED:
                 st.session_state.auth = True
                 st.session_state.user = email_input
                 st.session_state.is_admin = email_input in ADMIN_EMAILS
                 st.rerun()
             else:
-                st.error("Access Denied: Email not in authorized whitelist.")
+                st.error(f"Access Denied: {email_input} is not on the authorized list.")
     st.stop()
 
-# 3. DATA LOADER (Optimized)
+# 3. DATA LOADER
 @st.cache_data
 def load_db():
     file_path = "master_ops_database.csv"
     if os.path.exists(file_path):
+        # engine='python' ensures it reads the multi-line instructions correctly
         return pd.read_csv(file_path, engine='python').fillna("")
     return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
 
@@ -81,75 +98,53 @@ with st.sidebar:
     page = st.radio("Navigation", ["Knowledge Base", "Admin Dashboard"] if st.session_state.is_admin else ["Knowledge Base"])
     
     st.divider()
-    st.markdown("### 🛠 Tools")
-    st.markdown("• [Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524)")
-    st.markdown("• [Salesforce](https://arrowcrm.lightning.force.com/)")
-    st.markdown("• [SWB Dashboard](https://acswb.arrow.com/Swb/)")
-    
-    if st.button("Logout", use_container_width=True):
+    if st.button("Logout"):
         st.session_state.clear()
         st.rerun()
 
-# 5. SEARCH LOGIC (Multi-word support)
+# 5. PAGE LOGIC
 if page == "Knowledge Base":
     st.title("OMT Knowledge Base")
-    query = st.text_input("Search (e.g., 'Partial Ship', 'Venlo', 'Daniel')...", placeholder="What are you looking for today?")
+    query = st.text_input("🔍 Search procedures, templates, or contacts...", placeholder="e.g. 'Partial', 'Reno', 'Collector'")
 
     if query:
         keywords = query.lower().split()
-        # Checks if all keywords exist somewhere in the row
         mask = df.apply(lambda row: all(k in str(row).lower() for k in keywords), axis=1)
         results = df[mask]
         
         if not results.empty:
-            st.success(f"Found {len(results)} matches for '{query}'")
+            st.success(f"Displaying {len(results)} matches")
             for _, row in results.iterrows():
                 st.markdown(f"""
                 <div class="result-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span class="system-tag">{row['System']}</span>
-                        <small style="color:gray;">{row['File_Source']}</small>
+                    <div style="color:#005a9c; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">
+                        {row['System']} | {row['File_Source']}
                     </div>
-                    <h3 style="margin: 10px 0; color:#1a1a1a;">{row['Process']}</h3>
+                    <h3 style="margin-top:5px; margin-bottom:15px;">{row['Process']}</h3>
                     <div class="instructions">{row['Instructions']}</div>
-                    <div style="margin-top:15px; font-size:0.9rem;">
-                        <b>Logic/Rationale:</b> {row['Rationale']}
+                    <div style="margin-top:15px; font-size:0.9rem; color:#4b5563;">
+                        <b>Why we do this:</b> {row['Rationale']}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning("No procedures found for that keyword.")
+            st.warning("No matching procedures found.")
     else:
-        st.info("👋 Welcome! Use the search bar to find SOPs, contacts, and email templates.")
+        st.info("👋 Welcome! Start typing above to search the OMT database.")
 
-# 6. ADMIN DASHBOARD (New Editable Feature)
+# 6. ADMIN DASHBOARD
 elif page == "Admin Dashboard":
-    st.title("⚙️ Admin Control Panel")
+    st.title("⚙️ Admin Panel")
     
-    # KPIs
-    kpi1, kpi2, kpi3 = st.columns(3)
-    kpi1.metric("Database Entries", len(df))
-    kpi2.metric("System Health", "Optimal")
-    kpi3.metric("Search Relevancy", "High")
-
+    # Stats Metrics
+    m1, m2 = st.columns(2)
+    m1.metric("Total SOPs", len(df))
+    m2.metric("System Status", "Online / High Contrast")
+    
     st.divider()
-    st.subheader("Live Database Editor")
-    st.write("Changes made below can be downloaded and used to update your local CSV.")
-    
-    # Advanced Data Editor
+    st.subheader("Edit Master Database")
+    # Live editor for Yahya and Mafernandez
     edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     
-    st.divider()
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.download_button(
-            "💾 Export Edited CSV",
-            data=edited_df.to_csv(index=False),
-            file_name="master_ops_database.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-    with col_b:
-        if st.button("♻️ Clear Cache", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
+    if st.download_button("💾 Download Updated CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
+        st.success("CSV ready for download. Please replace your local file with this version.")
