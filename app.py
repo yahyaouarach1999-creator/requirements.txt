@@ -6,7 +6,7 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- FIXED ACCESS CONTROL ---
-# Combined lists correctly to prevent overwriting access
+# Admin and User lists correctly separated
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
 USER_EMAILS = ["nassim.bouzaid@arrow.com"]
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
@@ -24,7 +24,7 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     
-    /* Instructions Styling (Lightened for visibility) */
+    /* Instructions Styling (Lightened and Professional) */
     .instructions { 
         background-color: #f9fafb; padding: 18px; border-left: 6px solid #005a9c; 
         white-space: pre-wrap; color: #111827 !important; 
@@ -33,7 +33,7 @@ st.markdown("""
         border-radius: 4px; margin-top: 10px;
     }
 
-    /* FIX: Button Visibility (No longer black/hidden) */
+    /* FIX: Button Visibility */
     div.stButton > button {
         background-color: #ffffff !important;
         color: #005a9c !important;
@@ -73,7 +73,7 @@ if not st.session_state.auth:
                 st.session_state.is_admin = (email_input in ADMIN_EMAILS)
                 st.rerun()
             else:
-                st.error(f"Access Denied: {email_input} is not on the authorized list.")
+                st.error(f"Access Denied: {email_input} is not authorized.")
     st.stop()
 
 # 3. DATA LOADER
@@ -110,8 +110,8 @@ with st.sidebar:
 
 # 5. PAGE LOGIC
 if page == "Knowledge Base":
-    st.title("OMT Knowledge Base")
-    query = st.text_input("🔍 Search (e.g. 'Partial', 'Venlo', 'Daniel')...", placeholder="What are you looking for?")
+    st.title("Knowledge Base") # Removed OMT from Title
+    query = st.text_input("🔍 Search (e.g. 'Partial', 'Venlo', 'Daniel')...", placeholder="Search for procedures or contacts...")
 
     if query:
         keywords = query.lower().split()
@@ -124,12 +124,12 @@ if page == "Knowledge Base":
                 st.markdown(f"""
                 <div class="result-card">
                     <div style="color:#005a9c; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">
-                        {row['System']} | {row['File_Source']}
+                        {row['System']}
                     </div>
                     <h3 style="margin-top:5px; margin-bottom:15px;">{row['Process']}</h3>
                     <div class="instructions">{row['Instructions']}</div>
                     <div style="margin-top:15px; font-size:0.9rem; color:#4b5563;">
-                        <b>Why we do this:</b> {row['Rationale']}
+                        <b>Rationale:</b> {row['Rationale']}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -144,11 +144,12 @@ elif page == "Admin Dashboard":
     
     col1, col2 = st.columns(2)
     col1.metric("Database Entries", len(df))
-    col2.metric("Access Health", "Nassim/Yahya/Mafernandez Active")
+    col2.metric("Access Health", "All Systems Operational")
     
     st.divider()
     st.subheader("Master Database Editor")
+    # Live data editor
     edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     
     if st.download_button("💾 Save & Download CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
-        st.success("Download complete. Replace your current CSV with this file to apply changes permanently.")
+        st.success("Download complete. Replace your local CSV file with this version.")
