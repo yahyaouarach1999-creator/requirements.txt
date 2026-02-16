@@ -1,66 +1,74 @@
 import streamlit as st
 import pandas as pd
 import os
+import re
 
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- FIXED ACCESS CONTROL ---
-# Admin and User lists correctly separated
+# --- AUTHORIZATION LIST ---
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
 USER_EMAILS = ["nassim.bouzaid@arrow.com"]
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# Styling: High-Contrast Corporate UI (Fixes "Black Button" & "Dark Template" issues)
+# 2. STYLING: HIGH-CONTRAST PROFESSIONAL UI
 st.markdown("""
 <style>
-    /* Main Background */
-    .stApp { background-color: #ffffff; color: #000000; }
+    /* Global White Theme */
+    .stApp { background-color: #ffffff; color: #1f2937; }
     
-    /* Result Card Styling */
-    .result-card { 
-        border: 1px solid #d1d5db; padding: 24px; border-radius: 12px; 
-        background-color: #ffffff; margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    /* Input Field Styling */
+    .stTextInput input {
+        border: 2px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        padding: 10px !important;
     }
     
-    /* Instructions Styling (Lightened and Professional) */
-    .instructions { 
-        background-color: #f9fafb; padding: 18px; border-left: 6px solid #005a9c; 
-        white-space: pre-wrap; color: #111827 !important; 
-        font-family: 'Consolas', monospace; font-size: 1rem;
-        border: 1px solid #e5e7eb; border-left: 6px solid #005a9c;
-        border-radius: 4px; margin-top: 10px;
-    }
-
-    /* FIX: Button Visibility */
+    /* Button Visibility Fix */
     div.stButton > button {
         background-color: #ffffff !important;
         color: #005a9c !important;
         border: 2px solid #005a9c !important;
         font-weight: bold !important;
-        border-radius: 8px !important;
-        padding: 0.5rem 1rem !important;
+        transition: 0.3s;
     }
     div.stButton > button:hover {
         background-color: #005a9c !important;
         color: #ffffff !important;
     }
 
-    /* Admin Badge */
+    /* Professional Instruction Text */
+    .step-text {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #374151;
+    }
+    
     .admin-badge {
-        background-color: #e11d48; color: white; padding: 4px 10px;
-        border-radius: 20px; font-size: 0.75rem; font-weight: bold;
+        background-color: #be185d; color: white; padding: 2px 10px;
+        border-radius: 12px; font-size: 0.7rem; font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Helper function to format instructions into a clean list
+def format_instructions(text):
+    # Splits by numbers like "1.", "2." or by newlines
+    steps = re.split(r'\d+\.', text)
+    if len(steps) > 1:
+        formatted = ""
+        for i, step in enumerate(steps[1:], 1):
+            if step.strip():
+                formatted += f"**Step {i}:** {step.strip()}\n\n"
+        return formatted
+    return text
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
     st.session_state.user = ""
     st.session_state.is_admin = False
 
-# 2. LOGIN GATE
+# 3. LOGIN GATE
 if not st.session_state.auth:
     _, center, _ = st.columns([1, 1.5, 1])
     with center:
@@ -76,7 +84,7 @@ if not st.session_state.auth:
                 st.error(f"Access Denied: {email_input} is not authorized.")
     st.stop()
 
-# 3. DATA LOADER
+# 4. DATA LOADER
 @st.cache_data
 def load_db():
     file_path = "master_ops_database.csv"
@@ -86,7 +94,7 @@ def load_db():
 
 df = load_db()
 
-# 4. SIDEBAR (Restored Quick Links)
+# 5. SIDEBAR
 with st.sidebar:
     st.title("🏹 Arledge")
     role = "ADMIN" if st.session_state.is_admin else "USER"
@@ -96,22 +104,19 @@ with st.sidebar:
     page = st.radio("Navigation", ["Knowledge Base", "Admin Dashboard"] if st.session_state.is_admin else ["Knowledge Base"])
     
     st.divider()
-    st.markdown("### ⚡ Quick Access Links")
-    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
-    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.markdown("### ⚡ Quick Access")
+    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524)")
+    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/)")
     st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
-    st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
-    st.markdown("• [🛠 MyConnect IT](https://arrow.service-now.com/myconnect)")
     
-    st.divider()
     if st.button("Logout"):
         st.session_state.clear()
         st.rerun()
 
-# 5. PAGE LOGIC
+# 6. KNOWLEDGE BASE (Organized Click-to-Drop Style)
 if page == "Knowledge Base":
-    st.title("Knowledge Base") # Removed OMT from Title
-    query = st.text_input("🔍 Search (e.g. 'Partial', 'Venlo', 'Daniel')...", placeholder="Search for procedures or contacts...")
+    st.title("Knowledge Base")
+    query = st.text_input("🔍 Search for a process, rule, or collector...", placeholder="Type keywords here...")
 
     if query:
         keywords = query.lower().split()
@@ -119,37 +124,6 @@ if page == "Knowledge Base":
         results = df[mask]
         
         if not results.empty:
-            st.success(f"Found {len(results)} matches")
+            st.write(f"Showing {len(results)} results:")
             for _, row in results.iterrows():
-                st.markdown(f"""
-                <div class="result-card">
-                    <div style="color:#005a9c; font-weight:bold; font-size:0.85rem; text-transform:uppercase;">
-                        {row['System']}
-                    </div>
-                    <h3 style="margin-top:5px; margin-bottom:15px;">{row['Process']}</h3>
-                    <div class="instructions">{row['Instructions']}</div>
-                    <div style="margin-top:15px; font-size:0.9rem; color:#4b5563;">
-                        <b>Rationale:</b> {row['Rationale']}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.warning("No matches found.")
-    else:
-        st.info("👋 Welcome! Search by keyword above to see procedures and templates.")
-
-# 6. ADMIN DASHBOARD
-elif page == "Admin Dashboard":
-    st.title("⚙️ Admin Panel")
-    
-    col1, col2 = st.columns(2)
-    col1.metric("Database Entries", len(df))
-    col2.metric("Access Health", "All Systems Operational")
-    
-    st.divider()
-    st.subheader("Master Database Editor")
-    # Live data editor
-    edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-    
-    if st.download_button("💾 Save & Download CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
-        st.success("Download complete. Replace your local CSV file with this version.")
+                # CLICK-
