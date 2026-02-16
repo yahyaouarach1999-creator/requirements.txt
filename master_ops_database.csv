@@ -65,3 +65,25 @@ Warehouse (EMEA),Tube/Pack Split (Situation 1),"If Package = Tube/Pack/Box: Repl
 Templates,Order Status (Arrived at W/H),"Text: 'It is a vendor part and has now arrived at our warehouse. The team is working on receiving; once processed, shipment will proceed.'",Standardized vendor-to-warehouse update.,User Update
 Templates,PARTIALS (Statement),"Used when line 1.1 is already CLOSED/SHIPPED. Tells customer we are shipping what we found and cancelling the rest.",Standardized post-shipment notification.,User Update
 Templates,PARTIALA (Permission),"Used when order is still OPEN. Asks customer for permission to ship what is available or cancel.",Standardized pre-shipment notification.,User Update
+System,Process,Instructions,Rationale,File_Source
+Warehouse (APAC),A01 HK/SZ Support,"Email: JEFF.KWOK@arrowasia.com",Direct contact for A01 warehouse issues.,Contacts.pdf
+Warehouse (APAC),A03 SZ Support,"Email: dongsheng.sun@arrowasia.com (CC: sz-dhaurgentbillinguserlist@arrowasia.com)",Direct contact for A03 warehouse issues.,Contacts.pdf
+Warehouse (APAC),B04 HK Support,"Email: JEFF.KWOK@arrowasia.com (CC: PDCBILL.HK@arrowasia.com)",Direct contact for B04 warehouse issues.,Contacts.pdf
+Warehouse (APAC),B05/D51/A47 Support,"Email: JB.SHIPPING@arrowasia.com & KHATIJAH.HAMIRUDIN@arrowasia.com",Direct contact for SG/MY warehouse issues.,Contacts.pdf
+Warehouse (APAC),C02 Support,"Email: JACOB.BAE@arrowasia.com",Direct contact for C02 warehouse issues.,Contacts.pdf
+CyberSource,Transaction Search,"1. Transaction Management > Transactions. 2. Set Date Range. 3. Search by Merchant Ref or Request ID. 4. Click Request ID for details.",Reviews credit card payments and fraud cases.,Playbook.pdf
+CyberSource,Payment Status Check,"Green: Approved | Red: Under review or declined | Orange: Pending subscription.",Visual indicator for payment health.,Playbook.pdf
+My Connect,Technical Support Ticket,"1. Search 'Digital Issue'. 2. Set Urgency. 3. Provide SO/DID and details of the block. 4. Submit.",Resolves technical platform issues.,Playbook.pdf
+Oracle (Unity),Order Status: Entered,"If order is stuck in 'Entered', check line alerts. Fix error and manually click 'Book Order'.",Manual override for booking failures.,Playbook.pdf
+Oracle (Unity),Backorder Procedure,"1. Use Order Type 'DropShip order-DIGITAL'. 2. Mark as NCNR (Non-Cancellable/Non-Returnable). Note: Arrow.com only.",Differentiates manufacturer backorders.,Playbook.pdf
+Warehouse (CDH),Tracking Retrieval,"1. Copy Delivery ID. 2. Search Logistic File 'HKPDC - Documents - CDH Tracking'. 3. Trace via track-trace.com.",CDH tracking follows a different manual log.,Playbook.pdf
+Logistics,Cross-Dock Tracking Rule,"Never share the tracking number found in 'Digital Attributes' with customers; it is for internal supplier-to-warehouse legs only.",Prevents customer confusion on internal logistics.,Playbook.pdf
+Customer Master,Account Creation,"1. 'My Customers' > 'Distributor'. 2. Add site (Address/City/State). 3. Assign site type: Bill To, Ship To, or Freight Forwarder (F/F).",Foundation for manual order entry.,Playbook.pdf
+Manual Entry,Header Configuration,"1. Select Payment Type (Wire/CC). 2. Digital Source (Arrow/Verical). 3. 'PickShip DIGITAL'. 4. Ship Method: 'GENERIC-STD-GROUND-PREPAID'.",Standard setup for manual orders.,Playbook.pdf
+Oracle (Unity),Line Item Status: Closed,"If a line is 'Closed,' the warehouse has already shipped. No further modifications (QTY/Address) can be made in Unity.",Prevents system errors on shipped goods.,Playbook.pdf
+Logistics,Dropship (1N2) Contact,"1. Unity > Digital Attributes > Supplier Name/Code. 2. Open 'Verical Supplier Partner Information - Confidential.xls'. 3. Match code to find contact email.",Locates direct emails for third-party suppliers.,Playbook.pdf
+Documentation,MFG CoC Request (EMEA),"Email: business.support.pdc.emea@arrow.com. CC: Helpdeskvenlo.dlc.emea@arrow.com. Template: Request MFG CoC for WEB-SO / SO / Delivery ID.",Required for EMEA compliance requests.,Playbook.pdf
+Logistics,Military/Specialty Parts,"For VM5, V37, V38, GN4, V29, V75, V91, V86, VAA, VAN, VAP, VN8: Use portal: arrowcrm.my.salesforce-sites.com/arrowservices.",Specialized handling for high-risk/military parts.,Playbook.pdf
+Oracle (Unity),NCNR Flag Check,"Check 'User Defined Attributes' or 'Notes'. If NCNR is present, do not cancel without Asset Manager approval.",Protects against non-returnable stock loss.,Playbook.pdf
+Customer Master,Freight Forwarder Setup,"Ensure 'Final Destination Country' is correctly set in the header to avoid Trade Compliance blocks.",Ensures export legal compliance.,Playbook.pdf
+Oracle (Unity),Currency Discrepancy Fix,"If Web Order currency differs from Customer Master, manually change currency in the Header before entering lines.",Prevents billing engine failures.,Playbook.pdf
