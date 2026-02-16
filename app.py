@@ -6,12 +6,12 @@ import os
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- FIXED ACCESS CONTROL ---
-# No more overwriting; all admins and users are in clear, separate lists
+# Combined lists correctly to prevent overwriting access
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
-USER_EMAILS = ["nassim.bouzaid@arrow.com"] # Case-insensitive handled by .lower()
+USER_EMAILS = ["nassim.bouzaid@arrow.com"]
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# Styling: High-Contrast Corporate UI (Fixes "Black Button" issue)
+# Styling: High-Contrast Corporate UI (Fixes "Black Button" & "Dark Template" issues)
 st.markdown("""
 <style>
     /* Main Background */
@@ -24,26 +24,25 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
     
-    /* Instructions Styling (Lightened) */
+    /* Instructions Styling (Lightened for visibility) */
     .instructions { 
         background-color: #f9fafb; padding: 18px; border-left: 6px solid #005a9c; 
         white-space: pre-wrap; color: #111827 !important; 
         font-family: 'Consolas', monospace; font-size: 1rem;
-        border-radius: 0 8px 8px 0; border-top: 1px solid #e5e7eb;
-        border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;
+        border: 1px solid #e5e7eb; border-left: 6px solid #005a9c;
+        border-radius: 4px; margin-top: 10px;
     }
 
     /* FIX: Button Visibility (No longer black/hidden) */
-    .stButton > button {
+    div.stButton > button {
         background-color: #ffffff !important;
         color: #005a9c !important;
         border: 2px solid #005a9c !important;
         font-weight: bold !important;
         border-radius: 8px !important;
-        height: 3em !important;
-        width: 100% !important;
+        padding: 0.5rem 1rem !important;
     }
-    .stButton > button:hover {
+    div.stButton > button:hover {
         background-color: #005a9c !important;
         color: #ffffff !important;
     }
@@ -61,7 +60,7 @@ if 'auth' not in st.session_state:
     st.session_state.user = ""
     st.session_state.is_admin = False
 
-# 2. LOGIN GATE (Fixed Nassim's Access)
+# 2. LOGIN GATE
 if not st.session_state.auth:
     _, center, _ = st.columns([1, 1.5, 1])
     with center:
@@ -71,7 +70,7 @@ if not st.session_state.auth:
             if email_input in ALL_AUTHORIZED:
                 st.session_state.auth = True
                 st.session_state.user = email_input
-                st.session_state.is_admin = email_input in ADMIN_EMAILS
+                st.session_state.is_admin = (email_input in ADMIN_EMAILS)
                 st.rerun()
             else:
                 st.error(f"Access Denied: {email_input} is not on the authorized list.")
@@ -82,13 +81,12 @@ if not st.session_state.auth:
 def load_db():
     file_path = "master_ops_database.csv"
     if os.path.exists(file_path):
-        # engine='python' ensures it reads the multi-line instructions correctly
         return pd.read_csv(file_path, engine='python').fillna("")
     return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
 
 df = load_db()
 
-# 4. SIDEBAR
+# 4. SIDEBAR (Restored Quick Links)
 with st.sidebar:
     st.title("🏹 Arledge")
     role = "ADMIN" if st.session_state.is_admin else "USER"
@@ -98,6 +96,14 @@ with st.sidebar:
     page = st.radio("Navigation", ["Knowledge Base", "Admin Dashboard"] if st.session_state.is_admin else ["Knowledge Base"])
     
     st.divider()
+    st.markdown("### ⚡ Quick Access Links")
+    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
+    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
+    st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
+    st.markdown("• [🛠 MyConnect IT](https://arrow.service-now.com/myconnect)")
+    
+    st.divider()
     if st.button("Logout"):
         st.session_state.clear()
         st.rerun()
@@ -105,7 +111,7 @@ with st.sidebar:
 # 5. PAGE LOGIC
 if page == "Knowledge Base":
     st.title("OMT Knowledge Base")
-    query = st.text_input("🔍 Search procedures, templates, or contacts...", placeholder="e.g. 'Partial', 'Reno', 'Collector'")
+    query = st.text_input("🔍 Search (e.g. 'Partial', 'Venlo', 'Daniel')...", placeholder="What are you looking for?")
 
     if query:
         keywords = query.lower().split()
@@ -113,7 +119,7 @@ if page == "Knowledge Base":
         results = df[mask]
         
         if not results.empty:
-            st.success(f"Displaying {len(results)} matches")
+            st.success(f"Found {len(results)} matches")
             for _, row in results.iterrows():
                 st.markdown(f"""
                 <div class="result-card">
@@ -128,23 +134,21 @@ if page == "Knowledge Base":
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning("No matching procedures found.")
+            st.warning("No matches found.")
     else:
-        st.info("👋 Welcome! Start typing above to search the OMT database.")
+        st.info("👋 Welcome! Search by keyword above to see procedures and templates.")
 
 # 6. ADMIN DASHBOARD
 elif page == "Admin Dashboard":
     st.title("⚙️ Admin Panel")
     
-    # Stats Metrics
-    m1, m2 = st.columns(2)
-    m1.metric("Total SOPs", len(df))
-    m2.metric("System Status", "Online / High Contrast")
+    col1, col2 = st.columns(2)
+    col1.metric("Database Entries", len(df))
+    col2.metric("Access Health", "Nassim/Yahya/Mafernandez Active")
     
     st.divider()
-    st.subheader("Edit Master Database")
-    # Live editor for Yahya and Mafernandez
+    st.subheader("Master Database Editor")
     edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     
-    if st.download_button("💾 Download Updated CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
-        st.success("CSV ready for download. Please replace your local file with this version.")
+    if st.download_button("💾 Save & Download CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
+        st.success("Download complete. Replace your current CSV with this file to apply changes permanently.")
