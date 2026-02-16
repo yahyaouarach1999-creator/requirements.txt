@@ -6,60 +6,79 @@ import re
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
+# Initialize Theme State
+if 'dark_mode' not in st.session_state:
+    st.session_state.dark_mode = False
+
+# Function to toggle theme
+def toggle_theme():
+    st.session_state.dark_mode = not st.session_state.dark_mode
+
 # --- AUTHORIZATION LIST ---
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
 USER_EMAILS = ["nassim.bouzaid@arrow.com"]
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# 2. STYLING: PROFESSIONAL MINIMALIST UI
-st.markdown("""
+# 2. DYNAMIC STYLING (Light/Dark Mode)
+if st.session_state.dark_mode:
+    # DARK MODE COLORS
+    bg_color = "#0e1117"
+    text_color = "#ffffff"
+    card_bg = "#1f2937"
+    border_color = "#374151"
+    input_bg = "#262730"
+else:
+    # LIGHT MODE COLORS
+    bg_color = "#ffffff"
+    text_color = "#1f2937"
+    card_bg = "#f9fafb"
+    border_color = "#e5e7eb"
+    input_bg = "#ffffff"
+
+st.markdown(f"""
 <style>
-    .stApp { background-color: #ffffff; color: #1f2937; }
+    .stApp {{ background-color: {bg_color}; color: {text_color}; }}
     
-    /* Search Bar */
-    .stTextInput input {
+    /* Search Bar Adjustment */
+    .stTextInput input {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
         border: 2px solid #005a9c !important;
         border-radius: 8px !important;
-        font-size: 1.1rem !important;
-    }
+    }}
     
+    /* Global Text Colors */
+    h1, h2, h3, h4, p, span, label {{ color: {text_color} !important; }}
+
     /* Action Buttons */
-    div.stButton > button {
-        background-color: #ffffff !important;
+    div.stButton > button {{
+        background-color: {bg_color} !important;
         color: #005a9c !important;
         border: 2px solid #005a9c !important;
         font-weight: bold !important;
-        height: 3em !important;
-    }
-    div.stButton > button:hover {
+    }}
+    div.stButton > button:hover {{
         background-color: #005a9c !important;
         color: #ffffff !important;
-    }
+    }}
 
-    /* Professional Accordion/Expander */
-    .st-expander {
-        border: 1px solid #e5e7eb !important;
+    /* Accordion / Expander */
+    .st-expander {{
+        border: 1px solid {border_color} !important;
         border-radius: 10px !important;
-        background-color: #f9fafb !important;
+        background-color: {card_bg} !important;
         margin-bottom: 12px !important;
-    }
-    
-    .process-title {
-        color: #005a9c;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
+    }}
 
-    .admin-badge {
+    .admin-badge {{
         background-color: #be185d; color: white; padding: 2px 10px;
         border-radius: 12px; font-size: 0.7rem; font-weight: bold;
-    }
+    }}
 </style>
 """, unsafe_allow_html=True)
 
 # Helper function to clean and organize rules
 def format_rules(text):
-    # Splits text into steps if numbers or newlines are detected
     steps = re.split(r'(?:\d+\.|\n-|\n\*)', text)
     if len(steps) > 1:
         formatted = ""
@@ -106,6 +125,14 @@ df = load_db()
 # 5. SIDEBAR
 with st.sidebar:
     st.title("🏹 Arledge")
+    
+    # THEME TOGGLE BUTTON
+    theme_label = "☀️ Light Mode" if st.session_state.dark_mode else "🌙 Dark Mode"
+    if st.button(theme_label, use_container_width=True):
+        toggle_theme()
+        st.rerun()
+
+    st.divider()
     role = "ADMIN" if st.session_state.is_admin else "USER"
     st.markdown(f"**{st.session_state.user}** <span class='admin-badge'>{role}</span>", unsafe_allow_html=True)
     
@@ -124,7 +151,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# 6. KNOWLEDGE BASE (Clean Rules & Process View)
+# 6. KNOWLEDGE BASE
 if page == "Knowledge Base":
     st.title("Knowledge Base")
     query = st.text_input("🔍 Search Rules & Processes", placeholder="e.g. 'Partial', 'Venlo', 'Credit'")
@@ -137,7 +164,6 @@ if page == "Knowledge Base":
         if not results.empty:
             st.write(f"Showing {len(results)} matches:")
             for _, row in results.iterrows():
-                # ACCORDION STYLE: PROCESS NAME ONLY
                 with st.expander(f"⚙️ {row['System']} ▸ {row['Process']}", expanded=False):
                     st.markdown("### 📋 Rules & Procedures")
                     st.markdown(format_rules(row['Instructions']))
@@ -151,7 +177,6 @@ elif page == "Admin Dashboard":
     st.title("⚙️ Admin Panel")
     st.subheader("Master Database Management")
     
-    # Live editor for Admins
     edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     
     if st.download_button("💾 Save Changes (CSV)", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
