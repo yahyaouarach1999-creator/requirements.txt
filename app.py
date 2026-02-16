@@ -5,110 +5,125 @@ import os
 # 1. PAGE SETUP
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
-# --- STRICT SECURITY WHITELIST ---
-# Updated: Removed Hanane, kept Yahya and Mafernandez as authorized
-AUTHORIZED_USERS = [
-    "yahya.ouarach@arrow.com",
-    "mafernandez@arrow.com"
-]
+# --- ACCESS CONTROL LIST ---
+ADMIN_EMAILS = ["yahya.ouarach@arrow.com"]
+ADMIN_EMAILS = ["mafernandez@arrow.com"]
+USER_EMAILS = ["Nassim.Bouzaid@arrow.com"]
+ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# Styling: Professional White & High Contrast
+# Styling: High-End Corporate UI
 st.markdown("""
 <style>
-    .stApp { background-color: #ffffff !important; color: #000000 !important; }
-    input { border: 2px solid #005a9c !important; color: #000000 !important; }
+    .stApp { background-color: #ffffff; color: #000000; }
     .result-card { 
         border: 1px solid #e1e4e8; padding: 20px; border-radius: 10px; 
         background-color: #fcfcfc; margin-bottom: 20px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .instructions { 
-        background-color: #f1f3f4; padding: 15px; 
-        border-left: 5px solid #005a9c; white-space: pre-wrap; 
-        color: #202124 !important; font-family: monospace;
+        background-color: #f1f3f4; padding: 15px; border-left: 5px solid #005a9c; 
+        white-space: pre-wrap; color: #202124 !important; font-family: 'Courier New', Courier, monospace;
     }
-    [data-testid="stSidebar"] { background-color: #f8f9fa !important; border-right: 1px solid #dee2e6; }
-    label, p, span, h1, h2, h3 { color: #000000 !important; }
-    .source-tag { font-size: 0.7rem; color: #6c757d; font-style: italic; }
+    .admin-badge {
+        background-color: #ff4b4b; color: white; padding: 2px 8px;
+        border-radius: 5px; font-size: 0.7rem; font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 if 'auth' not in st.session_state:
     st.session_state.auth = False
     st.session_state.user = ""
+    st.session_state.is_admin = False
 
 # 2. LOGIN GATE
 if not st.session_state.auth:
-    st.title("🏹 Arledge")
-    st.subheader("Authorized Access Only")
-    email_input = st.text_input("Enter Arrow Email").lower().strip()
-    
-    if st.button("Verify Identity"):
-        if email_input in AUTHORIZED_USERS:
-            st.session_state.auth = True
-            st.session_state.user = email_input
-            st.rerun()
-        else:
-            st.error("Access Denied: Email not authorized.")
+    cols = st.columns([1, 2, 1])
+    with cols[1]:
+        st.title("🏹 Arledge Login")
+        email_input = st.text_input("Arrow Email Address").lower().strip()
+        if st.button("Sign In"):
+            if email_input in ALL_AUTHORIZED:
+                st.session_state.auth = True
+                st.session_state.user = email_input
+                st.session_state.is_admin = email_input in ADMIN_EMAILS
+                st.rerun()
+            else:
+                st.error("Unauthorized email address.")
     st.stop()
 
-# 3. SIDEBAR: TOOLS & REPORTING
+# 3. SIDEBAR: NAVIGATION & TOOLS
 with st.sidebar:
-    st.title("🏹 Resource Hub")
-    st.caption(f"Logged in: {st.session_state.user}")
-    st.divider()
+    st.title("🏹 Arledge")
+    role_label = "ADMIN" if st.session_state.is_admin else "USER"
+    st.markdown(f"**Logged in as:** {st.session_state.user} <span class='admin-badge'>{role_label}</span>", unsafe_allow_html=True)
     
-    st.markdown("### ⚡ Quick Access")
-    st.markdown("• [☁️ Oracle Unity (Direct)](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
-    st.markdown("• [🚩 Salesforce: My Cases](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.divider()
+    page = st.radio("Go To", ["Knowledge Base", "Admin Dashboard"] if st.session_state.is_admin else ["Knowledge Base"])
+    
+    st.divider()
+    st.markdown("### ⚡ Quick Links")
+    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
+    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
     st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
-    st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
-    st.markdown("• [🛠 MyConnect IT](https://arrow.service-now.com/myconnect)")
     
     st.divider()
-    st.markdown("### ⚠️ Report an Issue")
-    st.markdown(f"Contact Admin: [yahya.ouarach@arrow.com](mailto:yahya.ouarach@arrow.com)")
-    
     if st.button("Logout"):
         st.session_state.auth = False
         st.rerun()
 
-# 4. DATABASE LOADING
+# 4. DATA LOADER
 @st.cache_data
 def load_db():
     file_path = "master_ops_database.csv"
     if os.path.exists(file_path):
-        # We use 'python' engine to handle complex multi-line CSVs accurately
-        return pd.read_csv(file_path, encoding='utf-8', engine='python').fillna("")
+        return pd.read_csv(file_path, engine='python').fillna("")
     return pd.DataFrame()
 
 df = load_db()
 
-# 5. MAIN INTERFACE
-st.title("OMT Knowledge Base")
+# 5. PAGE LOGIC
+if page == "Knowledge Base":
+    st.title("OMT Knowledge Base")
+    query = st.text_input("Search anything (SOPs, Templates, Collectors, Systems)...")
 
-# Search Logic
-query = st.text_input("Search Procedures, Alerts, or Collectors", placeholder="Search by keyword (e.g., 'Partial', 'Rejection', 'RMA', 'Daniel')...")
-
-if query:
-    # Improved search: checks every single cell in the CSV for the keyword
-    mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
-    results = df[mask]
-    
-    if not results.empty:
-        st.success(f"Found {len(results)} matching entries:")
-        for _, row in results.iterrows():
-            with st.container():
+    if query:
+        mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False).any(), axis=1)
+        results = df[mask]
+        
+        if not results.empty:
+            st.success(f"Found {len(results)} results")
+            for _, row in results.iterrows():
                 st.markdown(f"""
                 <div class="result-card">
-                    <span style="color:#005a9c; font-weight:bold; font-size:0.9rem;">{row['System']} ▸ {row['Process']}</span>
+                    <h4 style="color:#005a9c; margin-bottom:5px;">{row['System']} ▸ {row['Process']}</h4>
                     <div class="instructions">{row['Instructions']}</div>
-                    <p style="margin-top:10px; font-size:0.85rem;"><strong>Rationale:</strong> {row['Rationale']}</p>
-                    <span class="source-tag">Source: {row['File_Source']}</span>
+                    <p style="margin-top:10px; font-size:0.9rem;"><b>Rationale:</b> {row['Rationale']}</p>
+                    <small style="color:gray;">Source: {row['File_Source']}</small>
                 </div>
                 """, unsafe_allow_html=True)
+        else:
+            st.warning("No matches found.")
     else:
-        st.warning(f"No results found for '{query}'.")
-else:
-    # Landing page message (Collector info is hidden as requested)
-    st.info("👋 Welcome. Use the search bar above to access OMT procedures, email templates, and collector assignments.")
+        st.info("💡 Tip: Search for 'Collector' to see alpha assignments or 'Email' for canned templates.")
+
+elif page == "Admin Dashboard":
+    st.title("⚙️ Admin Control Panel")
+    st.subheader("Master Database Management")
+    
+    # Show stats
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Procedures", len(df))
+    col2.metric("Authorized Users", len(ALL_AUTHORIZED))
+    col3.metric("System Engine", "Python v3.x")
+    
+    st.divider()
+    st.markdown("### Raw Data View")
+    st.dataframe(df, use_container_width=True)
+    
+    st.download_button(
+        "Download Database for Backup",
+        data=df.to_csv(index=False),
+        file_name="backup_ops_db.csv",
+        mime="text/csv"
+    )
