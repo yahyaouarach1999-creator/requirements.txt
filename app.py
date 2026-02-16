@@ -14,36 +14,33 @@ ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 # 2. STYLING: HIGH-CONTRAST PROFESSIONAL UI
 st.markdown("""
 <style>
-    /* Global White Theme */
     .stApp { background-color: #ffffff; color: #1f2937; }
     
-    /* Input Field Styling */
+    /* Search Bar Styling */
     .stTextInput input {
-        border: 2px solid #e5e7eb !important;
+        border: 2px solid #005a9c !important;
         border-radius: 8px !important;
-        padding: 10px !important;
     }
     
-    /* Button Visibility Fix */
+    /* Professional Button UI */
     div.stButton > button {
         background-color: #ffffff !important;
         color: #005a9c !important;
         border: 2px solid #005a9c !important;
         font-weight: bold !important;
-        transition: 0.3s;
     }
     div.stButton > button:hover {
         background-color: #005a9c !important;
         color: #ffffff !important;
     }
 
-    /* Professional Instruction Text */
-    .step-text {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-        color: #374151;
+    /* Expander Styling */
+    .st-expander {
+        border: 1px solid #e5e7eb !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px !important;
     }
-    
+
     .admin-badge {
         background-color: #be185d; color: white; padding: 2px 10px;
         border-radius: 12px; font-size: 0.7rem; font-weight: bold;
@@ -51,15 +48,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Helper function to format instructions into a clean list
-def format_instructions(text):
-    # Splits by numbers like "1.", "2." or by newlines
-    steps = re.split(r'\d+\.', text)
+# Helper function for professional numbering
+def format_professional_steps(text):
+    # Regex to find patterns like "1.", "2." or "Step 1:"
+    steps = re.split(r'(?:\d+\.|\bStep\s*\d+[:.])', text)
     if len(steps) > 1:
         formatted = ""
-        for i, step in enumerate(steps[1:], 1):
-            if step.strip():
-                formatted += f"**Step {i}:** {step.strip()}\n\n"
+        count = 1
+        for s in steps:
+            clean_s = s.strip()
+            if clean_s:
+                formatted += f"**{count}.** {clean_s}\n\n"
+                count += 1
         return formatted
     return text
 
@@ -113,10 +113,10 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
-# 6. KNOWLEDGE BASE (Organized Click-to-Drop Style)
+# 6. KNOWLEDGE BASE (Fixed Indentation & Formatting)
 if page == "Knowledge Base":
     st.title("Knowledge Base")
-    query = st.text_input("🔍 Search for a process, rule, or collector...", placeholder="Type keywords here...")
+    query = st.text_input("🔍 Search procedures or rules...", placeholder="Try 'Partial', 'Reno', or 'HTS'...")
 
     if query:
         keywords = query.lower().split()
@@ -124,6 +124,28 @@ if page == "Knowledge Base":
         results = df[mask]
         
         if not results.empty:
-            st.write(f"Showing {len(results)} results:")
+            st.success(f"Found {len(results)} matches")
             for _, row in results.iterrows():
-                # CLICK-
+                # Correctly indented block for the drop-style display
+                with st.expander(f"📘 {row['System']} : {row['Process']}", expanded=False):
+                    col1, col2 = st.columns([2.5, 1])
+                    with col1:
+                        st.markdown("#### 📋 Procedure")
+                        st.markdown(format_professional_steps(row['Instructions']))
+                    with col2:
+                        st.markdown("#### 💡 Rationale")
+                        st.info(row['Rationale'])
+        else:
+            st.warning("No matches found.")
+    else:
+        st.info("👋 Use the search bar above to look up operational data.")
+
+# 7. ADMIN DASHBOARD
+elif page == "Admin Dashboard":
+    st.title("⚙️ Admin Panel")
+    st.subheader("Master Database Editor")
+    
+    edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+    
+    if st.download_button("💾 Save & Download CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
+        st.success("Download complete. Replace your current file with this one.")
