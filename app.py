@@ -7,40 +7,47 @@ import re
 st.set_page_config(page_title="Arledge", layout="wide", page_icon="🏹")
 
 # --- AUTHORIZATION LIST ---
-# Consolidated list to ensure no overwrites
 ADMIN_EMAILS = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
 USER_EMAILS = ["nassim.bouzaid@arrow.com"]
 ALL_AUTHORIZED = ADMIN_EMAILS + USER_EMAILS
 
-# 2. STYLING: HIGH-CONTRAST PROFESSIONAL UI
+# 2. STYLING: PROFESSIONAL MINIMALIST UI
 st.markdown("""
 <style>
     .stApp { background-color: #ffffff; color: #1f2937; }
     
-    /* Search Bar Styling */
+    /* Search Bar */
     .stTextInput input {
         border: 2px solid #005a9c !important;
         border-radius: 8px !important;
+        font-size: 1.1rem !important;
     }
     
-    /* Professional Button UI (Fixes black button issue) */
+    /* Action Buttons */
     div.stButton > button {
         background-color: #ffffff !important;
         color: #005a9c !important;
         border: 2px solid #005a9c !important;
         font-weight: bold !important;
-        width: 100%;
+        height: 3em !important;
     }
     div.stButton > button:hover {
         background-color: #005a9c !important;
         color: #ffffff !important;
     }
 
-    /* Expander/Accordion Styling */
+    /* Professional Accordion/Expander */
     .st-expander {
         border: 1px solid #e5e7eb !important;
-        border-radius: 8px !important;
-        background-color: #fcfcfc !important;
+        border-radius: 10px !important;
+        background-color: #f9fafb !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .process-title {
+        color: #005a9c;
+        font-weight: 700;
+        font-size: 1.1rem;
     }
 
     .admin-badge {
@@ -50,17 +57,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Helper function for professional list formatting
-def format_professional_steps(text):
-    # Regex to handle various numbering styles (1., 2., Step 1:)
-    steps = re.split(r'(?:\d+\.|\bStep\s*\d+[:.])', text)
+# Helper function to clean and organize rules
+def format_rules(text):
+    # Splits text into steps if numbers or newlines are detected
+    steps = re.split(r'(?:\d+\.|\n-|\n\*)', text)
     if len(steps) > 1:
         formatted = ""
         count = 1
         for s in steps:
             clean_s = s.strip()
             if clean_s:
-                formatted += f"**{count}.** {clean_s}\n\n"
+                formatted += f"**Rule {count}:** {clean_s}  \n"
                 count += 1
         return formatted
     return text
@@ -76,7 +83,7 @@ if not st.session_state.auth:
     with center:
         st.title("🏹 Arledge Login")
         email_input = st.text_input("Arrow Email Address").lower().strip()
-        if st.button("Sign In"):
+        if st.button("Sign In", use_container_width=True):
             if email_input in ALL_AUTHORIZED:
                 st.session_state.auth = True
                 st.session_state.user = email_input
@@ -96,7 +103,7 @@ def load_db():
 
 df = load_db()
 
-# 5. SIDEBAR (Links Restored)
+# 5. SIDEBAR
 with st.sidebar:
     st.title("🏹 Arledge")
     role = "ADMIN" if st.session_state.is_admin else "USER"
@@ -107,21 +114,20 @@ with st.sidebar:
     
     st.divider()
     st.markdown("### ⚡ Quick Access Links")
-    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524&resp_id=57098&resp_appl_id=20008&security_group_id=0&lang_code=US&oas=k2oTjdeInl3Bik8l6rTqgA..)")
-    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/lightning/o/Case/list?filterName=My_Open_and_Flagged_With_Reminder)")
+    st.markdown("• [☁️ Oracle Unity](https://acerpebs.arrow.com/OA_HTML/RF.jsp?function_id=16524)")
+    st.markdown("• [🚩 Salesforce](https://arrowcrm.lightning.force.com/)")
     st.markdown("• [💻 SWB Dashboard](https://acswb.arrow.com/Swb/)")
     st.markdown("• [📋 ETQ Portal](https://arrow.etq.com/prod/rel/#/app/auth/login)")
     st.markdown("• [🛠 MyConnect IT](https://arrow.service-now.com/myconnect)")
     
-    st.divider()
-    if st.button("Logout"):
+    if st.button("Logout", use_container_width=True):
         st.session_state.clear()
         st.rerun()
 
-# 6. KNOWLEDGE BASE (Organized Click-to-Drop)
+# 6. KNOWLEDGE BASE (Clean Rules & Process View)
 if page == "Knowledge Base":
     st.title("Knowledge Base")
-    query = st.text_input("🔍 Search for a process or rule...", placeholder="Type keywords like 'Reno' or 'Partial'...")
+    query = st.text_input("🔍 Search Rules & Processes", placeholder="e.g. 'Partial', 'Venlo', 'Credit'")
 
     if query:
         keywords = query.lower().split()
@@ -131,27 +137,22 @@ if page == "Knowledge Base":
         if not results.empty:
             st.write(f"Showing {len(results)} matches:")
             for _, row in results.iterrows():
-                # PROFESSIONAL CLICK-TO-DROP STYLE
-                with st.expander(f"📘 {row['System']} : {row['Process']}", expanded=False):
-                    col_info, col_logic = st.columns([2.5, 1])
-                    with col_info:
-                        st.markdown("#### 📋 Procedure")
-                        st.markdown(format_professional_steps(row['Instructions']))
-                    with col_logic:
-                        st.markdown("#### 💡 Rationale")
-                        st.info(row['Rationale'])
+                # ACCORDION STYLE: PROCESS NAME ONLY
+                with st.expander(f"⚙️ {row['System']} ▸ {row['Process']}", expanded=False):
+                    st.markdown("### 📋 Rules & Procedures")
+                    st.markdown(format_rules(row['Instructions']))
         else:
             st.warning("No matches found.")
     else:
-        st.info("👋 Search by keyword to access operational procedures.")
+        st.info("👋 Enter a keyword to display specific rules and processes.")
 
 # 7. ADMIN DASHBOARD
 elif page == "Admin Dashboard":
     st.title("⚙️ Admin Panel")
-    st.subheader("Master Database Editor")
+    st.subheader("Master Database Management")
     
-    # Allows Yahya and Mafernandez to edit live
+    # Live editor for Admins
     edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic")
     
-    if st.download_button("💾 Save & Download CSV", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
-        st.success("CSV updated. Replace your local file with this version.")
+    if st.download_button("💾 Save Changes (CSV)", data=edited_df.to_csv(index=False), file_name="master_ops_database.csv", mime="text/csv"):
+        st.success("Changes saved. Download the file and update your repository.")
