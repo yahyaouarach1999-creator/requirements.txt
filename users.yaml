@@ -1,0 +1,16 @@
+credentials:
+  usernames:
+    yahya:
+      email: yahya.ouarach@arrow.com
+      name: Yahya Ouarach
+      password: '$2b$12$z5L9K2n9h3TQ8gFv0bKkOeUqk9dKQ9xZp5o9y9T8Lz3ZQ4uWqk6Fe' # password: admin123
+
+    nassim:
+      email: nassim.bouzaid@arrow.com
+      name: Nassim Bouzaid
+      password: '$2b$12$z5L9K2n9h3TQ8gFv0bKkOeUqk9dKQ9xZp5o9y9T8Lz3ZQ4uWqk6Fe'
+
+cookie:
+  expiry_days: 1
+  key: arledge_cookie_key
+  name: arledge_cookie
