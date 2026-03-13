@@ -1,40 +1,16 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
 import yaml
 from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 import re
+import os
 
-# --------------------------------
-# PAGE CONFIG
-# --------------------------------
-st.set_page_config(
-    page_title="Arledge",
-    page_icon="🏹",
-    layout="wide"
-)
+st.set_page_config(page_title="Arledge", page_icon="🏹", layout="wide")
 
-# --------------------------------
-# DATABASE CONNECTION
-# --------------------------------
-conn = sqlite3.connect("database.db", check_same_thread=False)
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS ops (
-System TEXT,
-Process TEXT,
-Instructions TEXT,
-Rationale TEXT,
-File_Source TEXT
-)
-""")
-conn.commit()
-
-# --------------------------------
+# -------------------------
 # LOAD USERS
-# --------------------------------
+# -------------------------
 with open("users.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
 
@@ -42,104 +18,101 @@ authenticator = stauth.Authenticate(
     config["credentials"],
     config["cookie"]["name"],
     config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
+    config["cookie"]["expiry_days"],
 )
 
 name, auth_status, username = authenticator.login("Login", "main")
 
-# --------------------------------
-# LOGIN CHECK
-# --------------------------------
 if auth_status is False:
-    st.error("Invalid username or password")
+    st.error("Incorrect username or password")
 
 if auth_status is None:
-    st.warning("Enter login credentials")
+    st.warning("Please enter your credentials")
 
 if auth_status:
 
     authenticator.logout("Logout", "sidebar")
 
-    # --------------------------------
-    # SIDEBAR
-    # --------------------------------
     st.sidebar.title("🏹 Arledge")
+    st.sidebar.write(f"Welcome **{name}**")
 
     page = st.sidebar.radio(
         "Navigation",
         ["Knowledge Base", "Admin Dashboard"]
     )
 
-    st.sidebar.divider()
-
-    st.sidebar.markdown(f"**User:** {name}")
-
-    # --------------------------------
+    # -------------------------
     # LOAD DATABASE
-    # --------------------------------
+    # -------------------------
+    @st.cache_data
     def load_data():
-        df = pd.read_sql("SELECT * FROM ops", conn)
-        return df.fillna("")
+        if os.path.exists("master_ops_database.csv"):
+            return pd.read_csv("master_ops_database.csv").fillna("")
+        return pd.DataFrame(columns=["System","Process","Instructions","Rationale","File_Source"])
 
     df = load_data()
 
-    # --------------------------------
+    # -------------------------
     # RULE FORMATTER
-    # --------------------------------
+    # -------------------------
     def format_rules(text):
 
-        rules = re.split(r'\d+\.', text)
+        steps = re.split(r'(?:\d+\.|\n-|\n\*)', text)
 
         formatted = ""
 
-        for i, r in enumerate(rules):
-            r = r.strip()
+        count = 1
 
-            if r:
-                formatted += f"**Rule {i}:** {r}\n\n"
+        for s in steps:
 
-        return formatted if formatted else text
+            s = s.strip()
 
-    # --------------------------------
-    # SEARCH ENGINE
-    # --------------------------------
-    def search_db(query):
+            if s:
+                formatted += f"**Rule {count}:** {s}\n\n"
+                count += 1
+
+        return formatted
+
+    # -------------------------
+    # SEARCH FUNCTION
+    # -------------------------
+    def search(query):
 
         keywords = query.lower().split()
 
-        df_lower = df.astype(str).apply(lambda x: x.str.lower())
-
-        mask = df_lower.apply(
-            lambda row: all(k in " ".join(row) for k in keywords),
+        mask = df.apply(
+            lambda row: all(
+                k in str(row).lower() for k in keywords
+            ),
             axis=1
         )
 
         return df[mask]
 
-    # --------------------------------
+    # -------------------------
     # KNOWLEDGE BASE
-    # --------------------------------
+    # -------------------------
     if page == "Knowledge Base":
 
         st.title("Knowledge Base")
 
         query = st.text_input(
-            "🔎 Search Processes",
+            "Search process",
             placeholder="ex: credit venlo partial"
         )
 
         if query:
 
-            results = search_db(query)
+            results = search(query)
 
             st.write(f"{len(results)} results found")
 
-            if len(results) > 0:
+            if not results.empty:
 
                 for _, row in results.iterrows():
 
                     with st.expander(
-                        f"⚙️ {row['System']} ▸ {row['Process']}"
+                        f"{row['System']} ▸ {row['Process']}"
                     ):
 
                         st.markdown("### Instructions")
@@ -150,109 +123,51 @@ if auth_status:
 
             else:
 
-                st.warning("No matches found")
+                st.warning("No results found")
 
         else:
 
-            st.info("Type keywords to search")
+            st.info("Enter keywords to search")
 
-    # --------------------------------
+    # -------------------------
     # ADMIN DASHBOARD
-    # --------------------------------
+    # -------------------------
     if page == "Admin Dashboard":
 
         st.title("Admin Dashboard")
 
-        tab1, tab2, tab3 = st.tabs([
-            "Database Editor",
-            "Upload Data",
-            "Analytics"
-        ])
+        edited_df = st.data_editor(
+            df,
+            use_container_width=True,
+            num_rows="dynamic"
+        )
 
-        # --------------------------------
-        # DATABASE EDITOR
-        # --------------------------------
-        with tab1:
+        if st.button("Save Changes"):
 
-            edited_df = st.data_editor(
-                df,
-                num_rows="dynamic",
-                use_container_width=True
+            edited_df.to_csv(
+                "master_ops_database.csv",
+                index=False
             )
 
-            if st.button("Save Database"):
+            st.success("Database Updated")
 
-                cursor.execute("DELETE FROM ops")
+        st.divider()
 
-                for _, r in edited_df.iterrows():
+        uploaded = st.file_uploader(
+            "Upload new database CSV"
+        )
 
-                    cursor.execute(
-                        "INSERT INTO ops VALUES (?,?,?,?,?)",
-                        (
-                            r["System"],
-                            r["Process"],
-                            r["Instructions"],
-                            r["Rationale"],
-                            r["File_Source"]
-                        )
-                    )
+        if uploaded:
 
-                conn.commit()
+            new_df = pd.read_csv(uploaded)
 
-                st.success("Database Updated")
+            st.dataframe(new_df)
 
-        # --------------------------------
-        # CSV UPLOAD
-        # --------------------------------
-        with tab2:
+            if st.button("Import Database"):
 
-            uploaded = st.file_uploader(
-                "Upload CSV Database"
-            )
+                new_df.to_csv(
+                    "master_ops_database.csv",
+                    index=False
+                )
 
-            if uploaded:
-
-                new_df = pd.read_csv(uploaded)
-
-                st.dataframe(new_df)
-
-                if st.button("Import Data"):
-
-                    cursor.execute("DELETE FROM ops")
-
-                    for _, r in new_df.iterrows():
-
-                        cursor.execute(
-                            "INSERT INTO ops VALUES (?,?,?,?,?)",
-                            (
-                                r["System"],
-                                r["Process"],
-                                r["Instructions"],
-                                r["Rationale"],
-                                r["File_Source"]
-                            )
-                        )
-
-                    conn.commit()
-
-                    st.success("New Database Imported")
-
-        # --------------------------------
-        # ANALYTICS
-        # --------------------------------
-        with tab3:
-
-            st.subheader("Database Statistics")
-
-            col1, col2 = st.columns(2)
-
-            col1.metric("Total Processes", len(df))
-
-            col2.metric(
-                "Systems",
-                df["System"].nunique()
-            )
-
-            st.bar_chart(
-                df["System"].value_counts()
-            )
+                st.success("New database imported")
