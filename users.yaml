@@ -1,14 +1,13 @@
 credentials:
   usernames:
+
     yahya:
-      email: yahya.ouarach@arrow.com
       name: Yahya Ouarach
-      password: '$2b$12$z5L9K2n9h3TQ8gFv0bKkOeUqk9dKQ9xZp5o9y9T8Lz3ZQ4uWqk6Fe' # password: admin123
+      password: $2b$12$7Qx2b4M1n5j4Z8nq3vX3EuXv9dXq6sPqj5Q4vYHqF8t3F8o1W9H9G
 
     nassim:
-      email: nassim.bouzaid@arrow.com
       name: Nassim Bouzaid
-      password: '$2b$12$z5L9K2n9h3TQ8gFv0bKkOeUqk9dKQ9xZp5o9y9T8Lz3ZQ4uWqk6Fe'
+      password: $2b$12$7Qx2b4M1n5j4Z8nq3vX3EuXv9dXq6sPqj5Q4vYHqF8t3F8o1W9H9G
 
 cookie:
   expiry_days: 1
