@@ -21,13 +21,15 @@ authenticator = stauth.Authenticate(
     config["credentials"],
     config["cookie"]["name"],
     config["cookie"]["key"],
-    config["cookie"]["expiry_days"],
+    config["cookie"]["expiry_days"]
 )
 
 # Render the login widget
-authenticator.login()
+# Latest stauth uses st.session_state internally. 
+# Use 'main' or 'sidebar' for the location.
+authenticator.login(location='main')
 
-# Check authentication status via session state (standard for latest stauth)
+# Logic for Authentication Status
 if st.session_state.get("authentication_status") is False:
     st.error("Username/password is incorrect")
 
@@ -82,22 +84,17 @@ elif st.session_state.get("authentication_status"):
     # --- KNOWLEDGE BASE ---
     if page == "Knowledge Base":
         st.title("Knowledge Base")
-
-        query = st.text_input(
-            "Search process",
-            placeholder="ex: credit venlo partial"
-        )
+        query = st.text_input("Search process", placeholder="ex: credit venlo partial")
 
         if query:
             results = search(query)
             st.write(f"{len(results)} results found")
-
             if not results.empty:
                 for _, row in results.iterrows():
                     with st.expander(f"{row['System']} ▸ {row['Process']}"):
                         st.markdown("### Instructions")
                         st.markdown(format_rules(row["Instructions"]))
-                        if row["Rationale"]:
+                        if "Rationale" in row and row["Rationale"]:
                             st.info(f"**Rationale:** {row['Rationale']}")
             else:
                 st.warning("No results found")
@@ -108,7 +105,6 @@ elif st.session_state.get("authentication_status"):
     if page == "Admin Dashboard":
         st.title("Admin Dashboard")
         
-        # Using a key for data_editor ensures it handles changes correctly
         edited_df = st.data_editor(
             df,
             use_container_width=True,
@@ -118,20 +114,14 @@ elif st.session_state.get("authentication_status"):
 
         if st.button("Save Changes"):
             edited_df.to_csv("master_ops_database.csv", index=False)
-            # Clear cache so the 'load_data' function pulls the new file
             st.cache_data.clear()
             st.success("Database Updated")
             st.rerun()
 
         st.divider()
-
         uploaded = st.file_uploader("Upload new database CSV", type=["csv"])
-
         if uploaded:
             new_df = pd.read_csv(uploaded)
-            st.write("Preview of Uploaded Data:")
-            st.dataframe(new_df.head())
-
             if st.button("Import & Overwrite Database"):
                 new_df.to_csv("master_ops_database.csv", index=False)
                 st.cache_data.clear()
