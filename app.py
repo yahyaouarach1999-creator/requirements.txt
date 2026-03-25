@@ -6,11 +6,14 @@ import streamlit_authenticator as stauth
 import re
 import os
 
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="Arledge", page_icon="🏹", layout="wide")
 
-# -------------------------
-# LOAD USERS
-# -------------------------
+# --- LOAD USERS & AUTHENTICATION ---
+if not os.path.exists("users.yaml"):
+    st.error("Please create a 'users.yaml' file to continue.")
+    st.stop()
+
 with open("users.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
 
@@ -21,18 +24,21 @@ authenticator = stauth.Authenticate(
     config["cookie"]["expiry_days"],
 )
 
-name, auth_status, username = authenticator.login("Login", "main")
+# Render the login widget
+authenticator.login()
 
-if auth_status is False:
-    st.error("Incorrect username or password")
+# Check authentication status via session state (standard for latest stauth)
+if st.session_state.get("authentication_status") is False:
+    st.error("Username/password is incorrect")
 
-if auth_status is None:
+elif st.session_state.get("authentication_status") is None:
     st.warning("Please enter your credentials")
 
-if auth_status:
-
+elif st.session_state.get("authentication_status"):
+    # --- LOGOUT & SIDEBAR ---
     authenticator.logout("Logout", "sidebar")
-
+    
+    name = st.session_state["name"]
     st.sidebar.title("🏹 Arledge")
     st.sidebar.write(f"Welcome **{name}**")
 
@@ -41,59 +47,40 @@ if auth_status:
         ["Knowledge Base", "Admin Dashboard"]
     )
 
-    # -------------------------
-    # LOAD DATABASE
-    # -------------------------
+    # --- LOAD DATABASE ---
     @st.cache_data
     def load_data():
         if os.path.exists("master_ops_database.csv"):
             return pd.read_csv("master_ops_database.csv").fillna("")
-        return pd.DataFrame(columns=["System","Process","Instructions","Rationale","File_Source"])
+        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
 
     df = load_data()
 
-    # -------------------------
-    # RULE FORMATTER
-    # -------------------------
+    # --- RULE FORMATTER ---
     def format_rules(text):
-
-        steps = re.split(r'(?:\d+\.|\n-|\n\*)', text)
-
+        steps = re.split(r'(?:\d+\.|\n-|\n\*)', str(text))
         formatted = ""
-
         count = 1
-
         for s in steps:
-
             s = s.strip()
-
             if s:
                 formatted += f"**Rule {count}:** {s}\n\n"
                 count += 1
-
         return formatted
 
-    # -------------------------
-    # SEARCH FUNCTION
-    # -------------------------
+    # --- SEARCH FUNCTION ---
     def search(query):
-
         keywords = query.lower().split()
-
         mask = df.apply(
             lambda row: all(
                 k in str(row).lower() for k in keywords
             ),
             axis=1
         )
-
         return df[mask]
 
-    # -------------------------
-    # KNOWLEDGE BASE
-    # -------------------------
+    # --- KNOWLEDGE BASE ---
     if page == "Knowledge Base":
-
         st.title("Knowledge Base")
 
         query = st.text_input(
@@ -102,72 +89,51 @@ if auth_status:
         )
 
         if query:
-
             results = search(query)
-
             st.write(f"{len(results)} results found")
 
             if not results.empty:
-
                 for _, row in results.iterrows():
-
-                    with st.expander(
-                        f"{row['System']} ▸ {row['Process']}"
-                    ):
-
+                    with st.expander(f"{row['System']} ▸ {row['Process']}"):
                         st.markdown("### Instructions")
-
-                        st.markdown(
-                            format_rules(row["Instructions"])
-                        )
-
+                        st.markdown(format_rules(row["Instructions"]))
+                        if row["Rationale"]:
+                            st.info(f"**Rationale:** {row['Rationale']}")
             else:
-
                 st.warning("No results found")
-
         else:
-
             st.info("Enter keywords to search")
 
-    # -------------------------
-    # ADMIN DASHBOARD
-    # -------------------------
+    # --- ADMIN DASHBOARD ---
     if page == "Admin Dashboard":
-
         st.title("Admin Dashboard")
-
+        
+        # Using a key for data_editor ensures it handles changes correctly
         edited_df = st.data_editor(
             df,
             use_container_width=True,
-            num_rows="dynamic"
+            num_rows="dynamic",
+            key="db_editor"
         )
 
         if st.button("Save Changes"):
-
-            edited_df.to_csv(
-                "master_ops_database.csv",
-                index=False
-            )
-
+            edited_df.to_csv("master_ops_database.csv", index=False)
+            # Clear cache so the 'load_data' function pulls the new file
+            st.cache_data.clear()
             st.success("Database Updated")
+            st.rerun()
 
         st.divider()
 
-        uploaded = st.file_uploader(
-            "Upload new database CSV"
-        )
+        uploaded = st.file_uploader("Upload new database CSV", type=["csv"])
 
         if uploaded:
-
             new_df = pd.read_csv(uploaded)
+            st.write("Preview of Uploaded Data:")
+            st.dataframe(new_df.head())
 
-            st.dataframe(new_df)
-
-            if st.button("Import Database"):
-
-                new_df.to_csv(
-                    "master_ops_database.csv",
-                    index=False
-                )
-
+            if st.button("Import & Overwrite Database"):
+                new_df.to_csv("master_ops_database.csv", index=False)
+                st.cache_data.clear()
                 st.success("New database imported")
+                st.rerun()
