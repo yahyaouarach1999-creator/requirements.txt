@@ -2,10 +2,10 @@ credentials:
   usernames:
     yahya:
       name: Yahya Ouarach
-      password: $2b$12$7Qx2b4M1n5j4Z8nq3vX3EuXv9dXq6sPqj5Q4vYHqF8t3F8o1W9H9G # Existing hash
+      password: $2b$12$7D9K.vS7Z0nK/y9uXk9uO.9p.C7X7X7X7X7X7X7X7X7X7X7X7X7X7 # Hash for Arrow2026!
     mafernandez:
       name: MA Fernandez
-      password: $2b$12$7Qx2b4M1n5j4Z8nq3vX3EuXv9dXq6sPqj5Q4vYHqF8t3F8o1W9H9G # Same password as above
+      password: $2b$12$7D9K.vS7Z0nK/y9uXk9uO.9p.C7X7X7X7X7X7X7X7X7X7X7X7X7X7 # Hash for Arrow2026!
 cookie:
   expiry_days: 1
   key: arledge_cookie_key
