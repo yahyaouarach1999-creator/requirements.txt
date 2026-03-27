@@ -26,7 +26,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- 3. LOGIN WIDGET ---
-# In v0.3.2, login() handles session state internally.
+# Updated for v0.3.x: Handles state internally
 authenticator.login(location='main')
 
 # --- 4. AUTHENTICATION CHECK ---
@@ -98,14 +98,13 @@ elif st.session_state.get("authentication_status"):
             st.success("Database Updated!")
             st.rerun()
 
-# --- 7. UTILITY: HASH GENERATOR ---
-# If login fails, use this tool in the sidebar to generate a NEW hash
+# --- 7. FIXED HASH GENERATOR ---
 with st.sidebar:
     st.divider()
     if st.checkbox("🔑 Debug: Generate New Hash"):
-        new_pw = st.text_input("Type 'Arrow2026!' here", type="password")
+        new_pw = st.text_input("Type password to hash", type="password")
         if new_pw:
-            # We use a list because the hasher expects a list of passwords
-            hashed = stauth.Hasher([new_pw]).generate()
-            st.code(hashed[0], language="text")
-            st.caption("Copy this hash into your users.yaml")
+            # FIXED: Correct syntax for current stauth version
+            hashed = stauth.Hasher.hash(new_pw)
+            st.code(hashed, language="text")
+            st.caption("Copy this into users.yaml")
