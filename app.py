@@ -10,45 +10,57 @@ st.markdown("Search for procedures, system codes, or contact emails below.")
 # Load the data
 @st.cache_data
 def load_data():
-    # We use 'header=0' because your data has a clear header row
-    df = pd.read_csv("data.csv")
-    return df
+    try:
+        df = pd.read_csv("data.csv")
+        return df
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
+        st.info("Make sure your CSV file is named 'data.csv' and is in the same folder as this script.")
+        return pd.DataFrame()
 
-try:
-    df = load_data()
+df = load_data()
 
+if not df.empty:
     # Search bar
     search_query = st.text_input("🔍 Search by System, Process, or Keyword (e.g., 'Unity', 'Reno', 'Email')", "")
 
+    # Logic: Only process and display if there is a search query
     if search_query:
         # Filter logic: search across all columns
         mask = df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)
         filtered_df = df[mask]
+
+        # Display results count
+        st.subheader(f"Found {len(filtered_df)} Results")
+        
+        if not filtered_df.empty:
+            # Using a dataframe display for a clean UI
+            st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+
+            # Detailed view if a user wants to see specific instructions clearly
+            st.divider()
+            st.subheader("Detail View")
+            
+            # Ensure "Process" column exists before using unique()
+            process_options = filtered_df["Process"].unique()
+            selected_process = st.selectbox("Select a process to see full instructions:", process_options)
+            
+            # Get data for the selected process
+            detail = filtered_df[filtered_df["Process"] == selected_process].iloc[0]
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.info(f"**System:** {detail.get('System', 'N/A')}")
+                st.success(f"**Rationale:** {detail.get('Rationale', 'N/A')}")
+            with col2:
+                st.warning(f"**Instructions:**\n{detail.get('Instructions', 'N/A')}")
+                st.write(f"*Source: {detail.get('File_Source', 'Unknown')}*")
+        else:
+            st.warning("No matches found. Please try a different keyword.")
     else:
-        filtered_df = df
-
-    # Display results
-    st.subheader(f"Found {len(filtered_df)} Results")
-    
-    # Using a dataframe display for a clean UI
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-
-    # Detailed view if a user wants to see specific instructions clearly
-    if len(filtered_df) > 0:
-        st.divider()
-        st.subheader("Detail View")
-        selected_process = st.selectbox("Select a process to see full instructions:", filtered_df["Process"].unique())
+        # What the user sees when they first land on the page
+        st.info("Welcome! Please enter a search term above to begin browsing the database.")
         
-        detail = filtered_df[filtered_df["Process"] == selected_process].iloc[0]
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"**System:** {detail['System']}")
-            st.success(f"**Rationale:** {detail['Rationale']}")
-        with col2:
-            st.warning(f"**Instructions:**\n{detail['Instructions']}")
-            st.write(f"*Source: {detail['File_Source']}*")
-
-except Exception as e:
-    st.error(f"Error loading CSV: {e}")
-    st.info("Make sure your CSV file is named 'data.csv' and is in the same folder as this script.")
+        # Optional: You can show a small tip or a list of common search terms here
+        st.write("---")
+        st.caption("Common searches: Unity, Logistics, SOP, Contact")
