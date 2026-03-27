@@ -3,11 +3,11 @@ credentials:
     yahya:
       email: yahya.ouarach@arrow.com
       name: Yahya Ouarach
-      password: $2b$12$cl7B.G9Z1ByZp6kI.D8PkeOf4YvS6O6m6H6y6H6y6H6y6H6y6H6y6
+      password: $2b$12$7D9K.vS7Z0nK/y9uXk9uO.9p.C7X7X7X7X7X7X7X7X7X7X7X7X7X7
     mafernandez:
       email: mafernandez@arrow.com
       name: MA Fernandez
-      password: $2b$12$cl7B.G9Z1ByZp6kI.D8PkeOf4YvS6O6m6H6y6H6y6H6y6H6y6H6y6
+      password: $2b$12$7D9K.vS7Z0nK/y9uXk9uO.9p.C7X7X7X7X7X7X7X7X7X7X7X7X7X7
 cookie:
   expiry_days: 1
   key: arledge_cookie_key
