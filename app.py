@@ -17,6 +17,7 @@ if not os.path.exists("users.yaml"):
 with open("users.yaml") as file:
     config = yaml.load(file, Loader=SafeLoader)
 
+# Initialize Authenticator
 authenticator = stauth.Authenticate(
     config["credentials"],
     config["cookie"]["name"],
@@ -24,12 +25,10 @@ authenticator = stauth.Authenticate(
     config["cookie"]["expiry_days"]
 )
 
-# Render the login widget
-# Latest stauth uses st.session_state internally. 
-# Use 'main' or 'sidebar' for the location.
-authenticator.login(location='main')
+# --- LOGIN WIDGET ---
+# Returns name, authentication_status, and username
+name, authentication_status, username = authenticator.login(location='main')
 
-# Logic for Authentication Status
 if st.session_state.get("authentication_status") is False:
     st.error("Username/password is incorrect")
 
@@ -37,19 +36,15 @@ elif st.session_state.get("authentication_status") is None:
     st.warning("Please enter your credentials")
 
 elif st.session_state.get("authentication_status"):
-    # --- LOGOUT & SIDEBAR ---
+    # --- AUTHENTICATED CONTENT ---
     authenticator.logout("Logout", "sidebar")
     
-    name = st.session_state["name"]
     st.sidebar.title("🏹 Arledge")
-    st.sidebar.write(f"Welcome **{name}**")
+    st.sidebar.write(f"Welcome **{st.session_state['name']}**")
 
-    page = st.sidebar.radio(
-        "Navigation",
-        ["Knowledge Base", "Admin Dashboard"]
-    )
+    page = st.sidebar.radio("Navigation", ["Knowledge Base", "Admin Dashboard"])
 
-    # --- LOAD DATABASE ---
+    # --- DATABASE LOADING ---
     @st.cache_data
     def load_data():
         if os.path.exists("master_ops_database.csv"):
@@ -58,7 +53,7 @@ elif st.session_state.get("authentication_status"):
 
     df = load_data()
 
-    # --- RULE FORMATTER ---
+    # --- HELPER: RULE FORMATTER ---
     def format_rules(text):
         steps = re.split(r'(?:\d+\.|\n-|\n\*)', str(text))
         formatted = ""
@@ -70,18 +65,13 @@ elif st.session_state.get("authentication_status"):
                 count += 1
         return formatted
 
-    # --- SEARCH FUNCTION ---
+    # --- HELPER: SEARCH ---
     def search(query):
         keywords = query.lower().split()
-        mask = df.apply(
-            lambda row: all(
-                k in str(row).lower() for k in keywords
-            ),
-            axis=1
-        )
+        mask = df.apply(lambda row: all(k in str(row).lower() for k in keywords), axis=1)
         return df[mask]
 
-    # --- KNOWLEDGE BASE ---
+    # --- PAGE: KNOWLEDGE BASE ---
     if page == "Knowledge Base":
         st.title("Knowledge Base")
         query = st.text_input("Search process", placeholder="ex: credit venlo partial")
@@ -89,28 +79,19 @@ elif st.session_state.get("authentication_status"):
         if query:
             results = search(query)
             st.write(f"{len(results)} results found")
-            if not results.empty:
-                for _, row in results.iterrows():
-                    with st.expander(f"{row['System']} ▸ {row['Process']}"):
-                        st.markdown("### Instructions")
-                        st.markdown(format_rules(row["Instructions"]))
-                        if "Rationale" in row and row["Rationale"]:
-                            st.info(f"**Rationale:** {row['Rationale']}")
-            else:
-                st.warning("No results found")
+            for _, row in results.iterrows():
+                with st.expander(f"{row['System']} ▸ {row['Process']}"):
+                    st.markdown("### Instructions")
+                    st.markdown(format_rules(row["Instructions"]))
+                    if "Rationale" in row and row["Rationale"]:
+                        st.info(f"**Rationale:** {row['Rationale']}")
         else:
             st.info("Enter keywords to search")
 
-    # --- ADMIN DASHBOARD ---
+    # --- PAGE: ADMIN DASHBOARD ---
     if page == "Admin Dashboard":
         st.title("Admin Dashboard")
-        
-        edited_df = st.data_editor(
-            df,
-            use_container_width=True,
-            num_rows="dynamic",
-            key="db_editor"
-        )
+        edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic", key="db_editor")
 
         if st.button("Save Changes"):
             edited_df.to_csv("master_ops_database.csv", index=False)
@@ -118,12 +99,12 @@ elif st.session_state.get("authentication_status"):
             st.success("Database Updated")
             st.rerun()
 
-        st.divider()
-        uploaded = st.file_uploader("Upload new database CSV", type=["csv"])
-        if uploaded:
-            new_df = pd.read_csv(uploaded)
-            if st.button("Import & Overwrite Database"):
-                new_df.to_csv("master_ops_database.csv", index=False)
-                st.cache_data.clear()
-                st.success("New database imported")
-                st.rerun()
+# --- OPTIONAL: HASH GENERATOR TOOL ---
+# Uncomment the lines below if you need to generate a new hash for your YAML file
+# st.divider()
+# if st.checkbox("Show Hash Generator"):
+#     pw_to_hash = st.text_input("Enter password to hash", type="password")
+#     if pw_to_hash:
+#         hashed = stauth.Hasher([pw_to_hash]).generate()
+#         st.code(hashed[0], language="text")
+#         st.info("Copy this hash into your users.yaml file")
