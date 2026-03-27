@@ -1,44 +1,51 @@
 import streamlit as st
 import pandas as pd
-import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
 
 # 1. Page Configuration
 st.set_page_config(page_title="Arledge Hub", layout="wide")
 
-# 2. Authentication Setup
-# In a production app, move these to a separate 'config.yaml' file
-credentials = {
-    "usernames": {
-        "yahya": {
-            "name": "Yahya Ouarach",
-            "password": "your_password_1", # Use hashed passwords in production
-            "email": "yahya.ouarach@arrow.com"
-        },
-        "mafernandez": {
-            "name": "MA Fernandez",
-            "password": "your_password_2",
-            "email": "mafernandez@arrow.com"
-        }
-    }
-}
+# 2. Simple Login Logic
+def check_password():
+    """Returns True if the user had the correct password."""
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "arledge_hub_cookie",
-    "signature_key",
-    cookie_expiry_days=30
-)
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        # Update these with your preferred login/pass
+        if (
+            st.session_state["username"] in ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
+            and st.session_state["password"] == "Arrow2026!"
+        ):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+            del st.session_state["username"]
+        else:
+            st.session_state["password_correct"] = False
 
-# Render the login widget
-name, authentication_status, username = authenticator.login("Login", "main")
+    if "password_correct" not in st.session_state:
+        # First run, show inputs for username and password.
+        st.title("Arledge Hub Login")
+        st.text_input("Email", on_change=password_entered, key="username")
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password incorrect, show input + error.
+        st.title("Arledge Hub Login")
+        st.text_input("Email", on_change=password_entered, key="username")
+        st.text_input("Password", type="password", on_change=password_entered, key="password")
+        st.error("😕 User not known or password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
 
-# 3. Main App Logic (Only runs if logged in)
-if authentication_status:
-    authenticator.logout("Logout", "sidebar")
+# 3. App Execution
+if check_password():
+    # --- Everything below only shows AFTER login ---
+    
+    st.sidebar.button("Log out", on_click=lambda: st.session_state.update({"password_correct": None}))
+    
     st.title("Arledge Hub")
-    st.markdown(f"Welcome back, **{name}**! Search for procedures or system codes below.")
+    st.markdown("Search for procedures or system codes below.")
 
     # Load the data
     @st.cache_data
@@ -56,7 +63,7 @@ if authentication_status:
         # Dropdown Search
         options = [""] + list(df["Process"].unique())
         selected_process = st.selectbox(
-            "🔍 Select or type a process to view details:", 
+            "🔍 Select a process to view details:", 
             options=options,
             index=0,
             placeholder="Choose an option..."
@@ -76,9 +83,4 @@ if authentication_status:
                 st.write(f"*Source: {detail.get('File_Source', 'Unknown')}*")
         else:
             st.divider()
-            st.info("The hub is ready. Use the dropdown above to look up a specific process.")
-
-elif authentication_status is False:
-    st.error("Username/password is incorrect")
-elif authentication_status is None:
-    st.warning("Please enter your username and password")
+            st.info("Please select a process from the dropdown to see its information.")
