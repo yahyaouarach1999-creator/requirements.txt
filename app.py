@@ -1,110 +1,54 @@
 import streamlit as st
 import pandas as pd
-import yaml
-from yaml.loader import SafeLoader
-import streamlit_authenticator as stauth
-import re
-import os
 
-# --- 1. PAGE CONFIG ---
-st.set_page_config(page_title="Arledge", page_icon="🏹", layout="wide")
+# Set page configuration
+st.set_page_config(page_title="Operations Knowledge Base", layout="wide")
 
-# --- 2. LOAD AUTHENTICATION CONFIG ---
-if not os.path.exists("users.yaml"):
-    st.error("Missing 'users.yaml' file.")
-    st.stop()
+st.title("Line Operations & Logistics Lookup")
+st.markdown("Search for procedures, system codes, or contact emails below.")
 
-with open("users.yaml") as file:
-    config = yaml.load(file, Loader=SafeLoader)
+# Load the data
+@st.cache_data
+def load_data():
+    # We use 'header=0' because your data has a clear header row
+    df = pd.read_csv("data.csv")
+    return df
 
-# Initialize Authenticator
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
-
-# --- 3. LOGIN WIDGET ---
-# Updated for v0.3.x: Handles state internally
-authenticator.login(location='main')
-
-# --- 4. AUTHENTICATION CHECK ---
-if st.session_state.get("authentication_status") is False:
-    st.error("Username/password is incorrect")
-
-elif st.session_state.get("authentication_status") is None:
-    st.warning("Please enter your credentials")
-
-elif st.session_state.get("authentication_status"):
-    # --- LOGOUT & SIDEBAR ---
-    authenticator.logout("Logout", "sidebar")
-    
-    user_name = st.session_state.get("name", "User")
-    st.sidebar.title("🏹 Arledge")
-    st.sidebar.write(f"Welcome **{user_name}**")
-
-    page = st.sidebar.radio("Navigation", ["Knowledge Base", "Admin Dashboard"])
-
-    # --- 5. DATABASE LOGIC ---
-    @st.cache_data
-    def load_data():
-        if os.path.exists("master_ops_database.csv"):
-            return pd.read_csv("master_ops_database.csv").fillna("")
-        return pd.DataFrame(columns=["System", "Process", "Instructions", "Rationale", "File_Source"])
-
+try:
     df = load_data()
 
-    def format_rules(text):
-        steps = re.split(r'(?:\d+\.|\n-|\n\*)', str(text))
-        formatted = ""
-        count = 1
-        for s in steps:
-            s = s.strip()
-            if s:
-                formatted += f"**Rule {count}:** {s}\n\n"
-                count += 1
-        return formatted
+    # Search bar
+    search_query = st.text_input("🔍 Search by System, Process, or Keyword (e.g., 'Unity', 'Reno', 'Email')", "")
 
-    def search(query):
-        keywords = query.lower().split()
-        mask = df.apply(lambda row: all(k in str(row).lower() for k in keywords), axis=1)
-        return df[mask]
+    if search_query:
+        # Filter logic: search across all columns
+        mask = df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)
+        filtered_df = df[mask]
+    else:
+        filtered_df = df
 
-    # --- 6. PAGES ---
-    if page == "Knowledge Base":
-        st.title("Knowledge Base")
-        query = st.text_input("Search process", placeholder="ex: credit venlo")
+    # Display results
+    st.subheader(f"Found {len(filtered_df)} Results")
+    
+    # Using a dataframe display for a clean UI
+    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
 
-        if query:
-            results = search(query)
-            st.write(f"{len(results)} results found")
-            for _, row in results.iterrows():
-                with st.expander(f"{row['System']} ▸ {row['Process']}"):
-                    st.markdown("### Instructions")
-                    st.markdown(format_rules(row.get("Instructions", "")))
-                    if "Rationale" in row and row["Rationale"]:
-                        st.info(f"**Rationale:** {row['Rationale']}")
-        else:
-            st.info("Enter keywords to search")
+    # Detailed view if a user wants to see specific instructions clearly
+    if len(filtered_df) > 0:
+        st.divider()
+        st.subheader("Detail View")
+        selected_process = st.selectbox("Select a process to see full instructions:", filtered_df["Process"].unique())
+        
+        detail = filtered_df[filtered_df["Process"] == selected_process].iloc[0]
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**System:** {detail['System']}")
+            st.success(f"**Rationale:** {detail['Rationale']}")
+        with col2:
+            st.warning(f"**Instructions:**\n{detail['Instructions']}")
+            st.write(f"*Source: {detail['File_Source']}*")
 
-    if page == "Admin Dashboard":
-        st.title("Admin Dashboard")
-        edited_df = st.data_editor(df, use_container_width=True, num_rows="dynamic", key="db_editor")
-
-        if st.button("Save Changes"):
-            edited_df.to_csv("master_ops_database.csv", index=False)
-            st.cache_data.clear()
-            st.success("Database Updated!")
-            st.rerun()
-
-# --- 7. FIXED HASH GENERATOR ---
-with st.sidebar:
-    st.divider()
-    if st.checkbox("🔑 Debug: Generate New Hash"):
-        new_pw = st.text_input("Type password to hash", type="password")
-        if new_pw:
-            # FIXED: Correct syntax for current stauth version
-            hashed = stauth.Hasher.hash(new_pw)
-            st.code(hashed, language="text")
-            st.caption("Copy this into users.yaml")
+except Exception as e:
+    st.error(f"Error loading CSV: {e}")
+    st.info("Make sure your CSV file is named 'data.csv' and is in the same folder as this script.")
