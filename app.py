@@ -5,7 +5,7 @@ import pandas as pd
 st.set_page_config(page_title="Operations Knowledge Base", layout="wide")
 
 st.title("Line Operations & Logistics Lookup")
-st.markdown("Search for procedures, system codes, or contact emails below.")
+st.markdown("Select a process below to view system codes, instructions, and rationales.")
 
 # Load the data
 @st.cache_data
@@ -15,52 +15,46 @@ def load_data():
         return df
     except Exception as e:
         st.error(f"Error loading CSV: {e}")
-        st.info("Make sure your CSV file is named 'data.csv' and is in the same folder as this script.")
         return pd.DataFrame()
 
 df = load_data()
 
 if not df.empty:
-    # Search bar
-    search_query = st.text_input("🔍 Search by System, Process, or Keyword (e.g., 'Unity', 'Reno', 'Email')", "")
+    # 1. Dropdown Search (The primary interaction)
+    # We add an empty string at the start so the page starts "blank"
+    options = [""] + list(df["Process"].unique())
+    selected_process = st.selectbox(
+        "🔍 Select or type a process to view details:", 
+        options=options,
+        index=0,
+        placeholder="Choose an option..."
+    )
 
-    # Logic: Only process and display if there is a search query
-    if search_query:
-        # Filter logic: search across all columns
-        mask = df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)
-        filtered_df = df[mask]
+    # 2. Conditional Display: Only show data if a process is selected
+    if selected_process != "":
+        # Filter the dataframe for the specific selection
+        detail = df[df["Process"] == selected_process].iloc[0]
 
-        # Display results count
-        st.subheader(f"Found {len(filtered_df)} Results")
+        st.subheader(f"Details for: {selected_process}")
         
-        if not filtered_df.empty:
-            # Using a dataframe display for a clean UI
-            st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+        # Main Info Cards
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**System:** {detail.get('System', 'N/A')}")
+            st.success(f"**Rationale:** {detail.get('Rationale', 'N/A')}")
+        with col2:
+            st.warning(f"**Instructions:**\n{detail.get('Instructions', 'N/A')}")
+            st.write(f"*Source: {detail.get('File_Source', 'Unknown')}*")
+        
+        # Optional: Show the raw row data in a small table below
+        with st.expander("View Raw Data Row"):
+            st.table(pd.DataFrame(detail).T)
 
-            # Detailed view if a user wants to see specific instructions clearly
-            st.divider()
-            st.subheader("Detail View")
-            
-            # Ensure "Process" column exists before using unique()
-            process_options = filtered_df["Process"].unique()
-            selected_process = st.selectbox("Select a process to see full instructions:", process_options)
-            
-            # Get data for the selected process
-            detail = filtered_df[filtered_df["Process"] == selected_process].iloc[0]
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.info(f"**System:** {detail.get('System', 'N/A')}")
-                st.success(f"**Rationale:** {detail.get('Rationale', 'N/A')}")
-            with col2:
-                st.warning(f"**Instructions:**\n{detail.get('Instructions', 'N/A')}")
-                st.write(f"*Source: {detail.get('File_Source', 'Unknown')}*")
-        else:
-            st.warning("No matches found. Please try a different keyword.")
     else:
-        # What the user sees when they first land on the page
-        st.info("Welcome! Please enter a search term above to begin browsing the database.")
-        
-        # Optional: You can show a small tip or a list of common search terms here
-        st.write("---")
-        st.caption("Common searches: Unity, Logistics, SOP, Contact")
+        # Initial Landing State
+        st.divider()
+        st.info("The dashboard is ready. Use the dropdown above to look up a specific process.")
+        st.caption("Tip: You can click the dropdown and start typing to filter the list instantly.")
+
+else:
+    st.warning("No data found. Please check your 'data.csv' file.")
