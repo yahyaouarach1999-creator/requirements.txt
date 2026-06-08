@@ -36,7 +36,6 @@ def render_login_screen():
             if email_input.lower() in authorized_emails and password_input == "Arrow2026!":
                 st.session_state["logged_in"] = True
                 st.session_state["user_email"] = email_input
-                # Establish Admin authority if user is Yahya
                 st.session_state["user_role"] = "Admin" if "yahya" in email_input.lower() else "User"
                 st.rerun()
             else:
@@ -59,8 +58,10 @@ else:
         
     current_view = st.sidebar.radio("Platform Environment", nav_options)
     
-    # FIXED: Replaced the broken v_spacer with standard markdown spacing blocks
-    st.sidebar.markdown("<br><br><br>", unsafe_allowed_html=True)
+    # FIXED: Replaced raw HTML linebreaks with native empty writes to create gap
+    st.sidebar.write("")
+    st.sidebar.write("")
+    st.sidebar.write("")
     st.sidebar.divider()
     
     if st.sidebar.button("Terminate Session", use_container_width=True):
@@ -179,7 +180,7 @@ else:
                     df_check = pd.read_csv(uploaded_csv_file)
                     df_check.to_csv("data.csv", index=False)
                     st.success("Master infrastructure update transaction complete.")
-                    st.cache_data.clear() # Clears processing cache instantly
+                    st.cache_data.clear() 
                 except Exception as ex_err:
                     st.error(f"Transaction failure: {ex_err}")
                     
