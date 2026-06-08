@@ -3,9 +3,18 @@ import pandas as pd
 import os
 
 # ==============================================================================
-# 1. PAGE ARCHITECTURE
+# 1. PAGE ARCHITECTURE & CLEAN UI OVERLAY
 # ==============================================================================
 st.set_page_config(page_title="Arledge Hub", layout="wide")
+
+# Hide the top GitHub/Streamlit utility header cleanly
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+    """, unsafe_allowed_html=True)
 
 # ==============================================================================
 # 2. ROBUST SESSION STATE INITIALIZATION
@@ -56,7 +65,7 @@ else:
         
     current_view = st.sidebar.radio("Platform Environment", nav_options)
     
-    st.sidebar.write("")
+    # Clean spacing using native writes instead of crashing HTML linebreaks
     st.sidebar.write("")
     st.sidebar.write("")
     st.sidebar.divider()
@@ -116,11 +125,9 @@ else:
                 
             with select_col:
                 if "Process" in df_filtered.columns and not df_filtered.empty:
-                    # Clean and sort options
                     clean_options = sorted(list(df_filtered["Process"].unique()))
                     
-                    # FIXED LOGIC: If a search filter is active and valid, don't include a blank starting row.
-                    # This forces the app to load the first result instantly.
+                    # Auto-select the matching filter instead of leaving it empty
                     if search_term and len(clean_options) > 0:
                         process_options = clean_options
                     else:
