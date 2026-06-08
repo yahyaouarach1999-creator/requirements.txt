@@ -1,4 +1,3 @@
-streamlit
-pandas
-pyyaml
-streamlit-authenticator==0.3.2
+streamlit>=1.35.0
+pandas>=2.2.0
+pyyaml>=6.0.1
