@@ -112,7 +112,9 @@ else:
         
     current_view = st.sidebar.radio("Platform Environment", navigation_options)
     
-    st.sidebar.v_spacer(height="long")
+    # Fixed the spacing logic here using standard empty blocks
+    st.sidebar.write("")
+    st.sidebar.write("")
     st.sidebar.divider()
     if st.sidebar.button("Terminate Session", use_container_width=True):
         st.session_state["auth_state"] = {"logged_in": False, "email": "", "role": "User"}
