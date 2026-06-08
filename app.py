@@ -33,7 +33,7 @@ def render_login_screen():
         
         if submit_button:
             authorized_emails = ["yahya.ouarach@arrow.com", "mafernandez@arrow.com"]
-            if email_input in authorized_emails and password_input == "Arrow2026!":
+            if email_input.lower() in authorized_emails and password_input == "Arrow2026!":
                 st.session_state["logged_in"] = True
                 st.session_state["user_email"] = email_input
                 # Establish Admin authority if user is Yahya
@@ -43,7 +43,7 @@ def render_login_screen():
                 st.error("Authentication rejected. Please check credentials.")
 
 # ==============================================================================
-# 4. CORE ENGINE CORE LOGIC
+# 4. MAIN ENGINE APPLICATION LOGIC
 # ==============================================================================
 if not st.session_state["logged_in"]:
     render_login_screen()
@@ -59,8 +59,10 @@ else:
         
     current_view = st.sidebar.radio("Platform Environment", nav_options)
     
-    st.sidebar.v_spacer(height="long")
+    # FIXED: Replaced the broken v_spacer with standard markdown spacing blocks
+    st.sidebar.markdown("<br><br><br>", unsafe_allowed_html=True)
     st.sidebar.divider()
+    
     if st.sidebar.button("Terminate Session", use_container_width=True):
         st.session_state["logged_in"] = False
         st.session_state["user_role"] = "User"
@@ -90,12 +92,10 @@ else:
         
         if not df_master.empty:
             # Native Performance Metrics Panel
-            m1, m2, m3 = st.columns(3)
+            m1, m2 = st.columns(2)
             with m1:
                 st.metric(label="ACTIVE OPERATION TARGETS", value=f"{len(df_master['Process'].unique()) if 'Process' in df_master.columns else 0} Nodes")
             with m2:
-                st.metric(label="CONNECTED CORE PLATFORMS", value=f"{len(df_master['System'].unique()) if 'System' in df_master.columns else 0} Systems")
-            with m3:
                 st.metric(label="DATA ARCHITECTURE INTEGRITY", value="Optimal")
                 
             st.write("")
@@ -104,7 +104,7 @@ else:
             search_col, select_col = st.columns([1.5, 2])
             
             with search_col:
-                search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Unity, Reno, Email)...")
+                search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Unity, Reno)...")
             
             # Execute flexible search across full dataframe matrix rows
             if search_term:
