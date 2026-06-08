@@ -3,18 +3,9 @@ import pandas as pd
 import os
 
 # ==============================================================================
-# 1. PAGE ARCHITECTURE & CLEAN UI OVERLAY
+# 1. PAGE ARCHITECTURE
 # ==============================================================================
 st.set_page_config(page_title="Arledge Hub", layout="wide")
-
-# Hide the top GitHub/Streamlit utility header cleanly
-st.markdown("""
-    <style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    </style>
-    """, unsafe_allowed_html=True)
 
 # ==============================================================================
 # 2. ROBUST SESSION STATE INITIALIZATION
