@@ -25,7 +25,6 @@ def render_login_screen():
     st.caption("Verical Operations & Logistics Management Platform")
     st.divider()
     
-    # Login Form Block
     with st.form("login_form"):
         email_input = st.text_input("Corporate Email Address", placeholder="username@arrow.com")
         password_input = st.text_input("Access Password", type="password", placeholder="••••••••")
@@ -51,14 +50,12 @@ else:
     st.sidebar.title("💎 Arledge Hub")
     st.sidebar.caption(f"Connected: {st.session_state['user_email']}")
     
-    # Restrict view modes based on role parameters
     nav_options = ["📋 Knowledge Base Engine"]
     if st.session_state["user_role"] == "Admin":
         nav_options.append("🛠️ Systems Admin Control")
         
     current_view = st.sidebar.radio("Platform Environment", nav_options)
     
-    # FIXED: Replaced raw HTML linebreaks with native empty writes to create gap
     st.sidebar.write("")
     st.sidebar.write("")
     st.sidebar.write("")
@@ -92,22 +89,22 @@ else:
         st.divider()
         
         if not df_master.empty:
-            # Native Performance Metrics Panel
+            # --- HEART-CENTRIC METRICS OVERHAUL ---
             m1, m2 = st.columns(2)
             with m1:
-                st.metric(label="ACTIVE OPERATION TARGETS", value=f"{len(df_master['Process'].unique()) if 'Process' in df_master.columns else 0} Nodes")
+                st.metric(label="🎯 LOGISTICS PROCEDURES GUARDED", value=f"{len(df_master['Process'].unique()) if 'Process' in df_master.columns else 0} SOPs Ready")
             with m2:
-                st.metric(label="DATA ARCHITECTURE INTEGRITY", value="Optimal")
+                st.metric(label="✨ TEAM OPERATIONAL READINESS", value="Fully Prepared")
                 
             st.write("")
             
-            # Integrated Filter Row Layout
+            # --- FIXED DUAL-LAYER FILTER ENGINE ---
             search_col, select_col = st.columns([1.5, 2])
             
             with search_col:
                 search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Unity, Reno)...")
             
-            # Execute flexible search across full dataframe matrix rows
+            # Filter rows based on search term
             if search_term:
                 search_mask = df_master.apply(lambda r: r.astype(str).str.contains(search_term, case=False).any(), axis=1)
                 df_filtered = df_master[search_mask]
@@ -115,11 +112,12 @@ else:
                 df_filtered = df_master
                 
             with select_col:
-                if "Process" in df_filtered.columns:
-                    process_options = [""] + list(df_filtered["Process"].unique())
+                if "Process" in df_filtered.columns and not df_filtered.empty:
+                    process_options = [""] + sorted(list(df_filtered["Process"].dropna().unique()))
                 else:
                     process_options = [""]
-                    
+                
+                # Check if we should auto-select the first valid item if filtering narrow scopes
                 selected_process = st.selectbox(
                     "🎯 Targeted Process Node Lookup",
                     options=process_options,
@@ -128,9 +126,10 @@ else:
                 )
 
             # Detail Render Block
-            if selected_process and not df_filtered.empty:
+            if selected_process and selected_process != "":
                 st.divider()
-                process_data = df_filtered[df_filtered["Process"] == selected_process].iloc[0]
+                # Pull exact record from master to ensure matching is completely authentic
+                process_data = df_master[df_master["Process"] == selected_process].iloc[0]
                 
                 st.subheader(f"Operational Specifications: {selected_process}")
                 
