@@ -72,7 +72,11 @@ else:
     def load_operational_data():
         if os.path.exists("data.csv"):
             try:
-                return pd.read_csv("data.csv")
+                data = pd.read_csv("data.csv")
+                # Clean up columns and string spaces immediately upon import to protect search matching
+                if "Process" in data.columns:
+                    data["Process"] = data["Process"].astype(str).str.strip()
+                return data
             except Exception as e:
                 st.sidebar.error(f"Data Read Failure: {e}")
                 return pd.DataFrame()
@@ -102,10 +106,11 @@ else:
             search_col, select_col = st.columns([1.5, 2])
             
             with search_col:
-                search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Unity, Reno)...")
+                search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Reno, Unity, System)...")
             
-            # Filter rows based on search term
+            # Filter rows based on the search keyword
             if search_term:
+                # Convert entire row data to string and look for the matching search keyword
                 search_mask = df_master.apply(lambda r: r.astype(str).str.contains(search_term, case=False).any(), axis=1)
                 df_filtered = df_master[search_mask]
             else:
@@ -113,11 +118,10 @@ else:
                 
             with select_col:
                 if "Process" in df_filtered.columns and not df_filtered.empty:
-                    process_options = [""] + sorted(list(df_filtered["Process"].dropna().unique()))
+                    process_options = [""] + sorted(list(df_filtered["Process"].unique()))
                 else:
                     process_options = [""]
                 
-                # Check if we should auto-select the first valid item if filtering narrow scopes
                 selected_process = st.selectbox(
                     "🎯 Targeted Process Node Lookup",
                     options=process_options,
@@ -128,7 +132,7 @@ else:
             # Detail Render Block
             if selected_process and selected_process != "":
                 st.divider()
-                # Pull exact record from master to ensure matching is completely authentic
+                # Safe fallback matching directly against the cleaned option item string
                 process_data = df_master[df_master["Process"] == selected_process].iloc[0]
                 
                 st.subheader(f"Operational Specifications: {selected_process}")
