@@ -73,7 +73,6 @@ else:
         if os.path.exists("data.csv"):
             try:
                 data = pd.read_csv("data.csv")
-                # Clean up columns and string spaces immediately upon import to protect search matching
                 if "Process" in data.columns:
                     data["Process"] = data["Process"].astype(str).str.strip()
                 return data
@@ -108,9 +107,8 @@ else:
             with search_col:
                 search_term = st.text_input("🔍 Filter by Keyword", placeholder="Type keywords (e.g., Reno, Unity, System)...")
             
-            # Filter rows based on the search keyword
+            # Filter rows based on search term
             if search_term:
-                # Convert entire row data to string and look for the matching search keyword
                 search_mask = df_master.apply(lambda r: r.astype(str).str.contains(search_term, case=False).any(), axis=1)
                 df_filtered = df_master[search_mask]
             else:
@@ -118,7 +116,15 @@ else:
                 
             with select_col:
                 if "Process" in df_filtered.columns and not df_filtered.empty:
-                    process_options = [""] + sorted(list(df_filtered["Process"].unique()))
+                    # Clean and sort options
+                    clean_options = sorted(list(df_filtered["Process"].unique()))
+                    
+                    # FIXED LOGIC: If a search filter is active and valid, don't include a blank starting row.
+                    # This forces the app to load the first result instantly.
+                    if search_term and len(clean_options) > 0:
+                        process_options = clean_options
+                    else:
+                        process_options = [""] + clean_options
                 else:
                     process_options = [""]
                 
@@ -132,7 +138,6 @@ else:
             # Detail Render Block
             if selected_process and selected_process != "":
                 st.divider()
-                # Safe fallback matching directly against the cleaned option item string
                 process_data = df_master[df_master["Process"] == selected_process].iloc[0]
                 
                 st.subheader(f"Operational Specifications: {selected_process}")
