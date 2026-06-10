@@ -84,3 +84,6 @@ Logistics,Military/Specialty Parts,"For VM5, V37, V38, GN4, V29, V75, V91, V86, 
 Oracle (Unity),NCNR Flag Check,Check 'User Defined Attributes' or 'Notes'. If NCNR is present, do not cancel without Asset Manager approval.,Protects against non-returnable stock loss.,Playbook.pdf
 Customer Master,Freight Forwarder Setup,Ensure 'Final Destination Country' is correctly set in the header to avoid Trade Compliance blocks.,Ensures export legal compliance.,Playbook.pdf
 Oracle (Unity),Currency Discrepancy Fix,If Web Order currency differs from Customer Master, manually change currency in the Header before entering lines.,Prevents billing engine failures.,Playbook.pdf
+Collections,Alpha: A B T W,Collector: Oscar Aranda (Oscar.Aranda@arrow.com),"Assigned Alphas: A, B, T, C, H, W",Here you can find Contacts.pdf
+Collections,Alpha: I J K,Collector: Iliana Robles (liana.Robles@arrow.com),"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z",Here you can find Contacts.pdf
+Collections,Alpha: L P S M N O R/G,Collector: Raul Garcia (Raul.Garcia@arrow.com),"Assigned Alphas: L, P, S, M, N, O, R/G",Here you can find Contacts.pdf
