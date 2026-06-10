@@ -31,9 +31,6 @@ Cancellations,Warehouse 1N2 (Dropship),"If DID exists: Request via email. If no 
 Contacts,Proof of Payment,"Forward to: vericalcia@arrow.com, wireremit@arrow.com, vericalremits@arrow.com. Always CC assigned collector.",Payment verification.,Here you can find Contacts.pdf
 Contacts,APAC Inventory/Cancel,Contact: dongsheng.sun@arrowasia.com or JB.SUPPORT@arrowasia.com.,Asia-specific escalation.,Here you can find Contacts.pdf
 Contacts,HK Receiving,Contact: Issac.Chan@arrow.com or URGENTRECEIVING.HK@arrowasia.com,Receiving escalation.,Here you can find Contacts.pdf
-Collections,Alpha: A B T W,Collector: Oscar Aranda (Oscar.Aranda@arrow.com),"Assigned Alphas: A, B, T, C, H, W",Here you can find Contacts.pdf
-Collections,Alpha: I J K,Collector: Iliana Robles (Iliana.Robles@arrow.com),"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z",Here you can find Contacts.pdf
-Collections,Alpha: L P S M N O R/G,Collector: Raul Garcia (Raul.Garcia@arrow.com),"Assigned Alphas: L, P, S, M, N, O, R/G",Here you can find Contacts.pdf
 Logistics,Expedite Receiving,"Provide: Supplier PO, SO, Supplier Name, Tracking Number, Carrier, Date of Arrival, MPN, and QTY. Note: Use if parts arrived but aren't reserved/received after 5+ days.",Escalates unreceived stock at warehouse.,User Update
 Logistics,CDH Sure Ship / Expedite,Email: URGENTRECEIVING.HK@arrowasia.com & JB.SHIPPING@arrowasia.com,Direct contact for HK Warehouse urgency.,User Update
 Logistics,CDV Support,Email: business.support.pdc.emea@arrow.com,Direct contact for CDV warehouse support.,User Update
@@ -85,5 +82,5 @@ Oracle (Unity),NCNR Flag Check,Check 'User Defined Attributes' or 'Notes'. If NC
 Customer Master,Freight Forwarder Setup,Ensure 'Final Destination Country' is correctly set in the header to avoid Trade Compliance blocks.,Ensures export legal compliance.,Playbook.pdf
 Oracle (Unity),Currency Discrepancy Fix,If Web Order currency differs from Customer Master, manually change currency in the Header before entering lines.,Prevents billing engine failures.,Playbook.pdf
 Collections,Alpha: A B T W,Collector: Oscar Aranda (Oscar.Aranda@arrow.com),"Assigned Alphas: A, B, T, C, H, W",Here you can find Contacts.pdf
-Collections,Alpha: I J K,Collector: Iliana Robles (liana.Robles@arrow.com),"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z",Here you can find Contacts.pdf
+Collections,Alpha: I J K,Collector: Iliana Robles (Iliana.Robles@arrow.com),"Assigned Alphas: I, J, K, E, F, #, signs, D, Q, U, V, X, Y, Z",Here you can find Contacts.pdf
 Collections,Alpha: L P S M N O R/G,Collector: Raul Garcia (Raul.Garcia@arrow.com),"Assigned Alphas: L, P, S, M, N, O, R/G",Here you can find Contacts.pdf
